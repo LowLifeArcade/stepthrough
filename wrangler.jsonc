@@ -1,0 +1,44 @@
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "stepthrough",
+    "main": "./.output/server/index.mjs",
+    "compatibility_date": "2026-03-10",
+    "assets": {
+        "binding": "ASSETS",
+        "directory": "./.output/public/"
+    },
+    "workers_dev": true,
+    "preview_urls": true,
+    "observability": {
+        "enabled": true
+    },
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "vars": {
+        "ENV": "prod"
+    },
+    "d1_databases": [
+        {
+            "binding": "STEPTHROUGH",
+            "database_name": "stepthrough-db",
+            "database_id": "e2fd2e57-cda1-4801-93f7-149b9ef20d04",
+            "migrations_dir": "db/migrations"
+        }
+    ],
+    "env": {
+        "dev": {
+            "vars": {
+                "ENV": "dev"
+            },
+            "d1_databases": [
+                {
+                    "binding": "STEPTHROUGH",
+                    "database_name": "stepthrough-db-dev",
+                    "database_id": "721dc626-765b-46f1-8084-aa6c3c2de313",
+                    "migrations_dir": "db/migrations"
+                }
+            ]
+        }
+    }
+}
