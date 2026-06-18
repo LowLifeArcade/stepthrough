@@ -3,10 +3,18 @@ import { OAUTH } from '~~/server/constants/auth';
 import { ONE_HOUR } from '~~/server/constants/time';
 import { uuidv7 } from '~~/server/utils/uuid';
 
+function safeRedirectTarget(value: unknown) {
+    if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+        return '/';
+    }
+
+    return value;
+}
+
 export default defineOAuthGoogleEventHandler({
     async onError(event, error) {
         console.log({ event, message: 'oauth error', error });
-        return sendRedirect(event, '/');
+        return sendRedirect(event, safeRedirectTarget(getQuery(event).state));
     },
     async onSuccess(event, { user }) {
         const db = useDatabase();
@@ -55,9 +63,9 @@ export default defineOAuthGoogleEventHandler({
             await setUserSession(event, { user: { ...user, uid } }, { maxAge: ONE_HOUR });
         } catch (error) {
             console.error({ error, message: 'problem creating or updating user' });
-            return sendRedirect(event, '/');
+            return sendRedirect(event, safeRedirectTarget(getQuery(event).state));
         }
 
-        return sendRedirect(event, '/');
+        return sendRedirect(event, safeRedirectTarget(getQuery(event).state));
     },
 });

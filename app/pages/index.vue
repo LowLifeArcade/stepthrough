@@ -253,8 +253,27 @@
                                             Each step is a main page with a title and ordered blocks. Mix creator
                                             content, image blocks, question blocks, and user notes in any order.
                                         </p>
+                                        <div class="wizard-view-toggle">
+                                            <button
+                                                type="button"
+                                                :class="{ active: stepWizardView === 'build' }"
+                                                @click="stepWizardView = 'build'"
+                                            >
+                                                Build
+                                            </button>
+                                            <button
+                                                type="button"
+                                                :class="{ active: stepWizardView === 'preview' }"
+                                                @click="stepWizardView = 'preview'"
+                                            >
+                                                Preview
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="builder-list">
+                                    <div
+                                        v-if="stepWizardView === 'build'"
+                                        class="builder-list"
+                                    >
                                         <article
                                             v-for="(page, index) in draft.pages"
                                             :key="page.id"
@@ -334,6 +353,7 @@
                                                             <option value="standout">Standout</option>
                                                             <option value="image">Image</option>
                                                             <option value="resource">Resource</option>
+                                                            <option value="previous-answer">Previous answer</option>
                                                         </select>
                                                         <button
                                                             class="icon-button"
@@ -366,6 +386,15 @@
                                                         </button>
                                                     </div>
                                                     <div class="block-fields">
+                                                        <label class="field">
+                                                            <span class="field-label">Section title (optional)</span>
+                                                            <input
+                                                                v-model="block.sectionTitle"
+                                                                class="text-input"
+                                                                type="text"
+                                                                placeholder="Add a heading for this block"
+                                                            />
+                                                        </label>
                                                         <template v-if="block.type === 'image'">
                                                             <input
                                                                 v-model="block.imageUrl"
@@ -435,6 +464,29 @@
                                                                 placeholder="Prompt for a larger user notes section"
                                                             ></textarea>
                                                         </template>
+                                                        <template v-else-if="block.type === 'previous-answer'">
+                                                            <div class="previous-answer-fields">
+                                                                <input
+                                                                    v-model="block.previousAnswerLabel"
+                                                                    class="text-input"
+                                                                    type="text"
+                                                                    placeholder="Display label"
+                                                                />
+                                                                <select
+                                                                    v-model="block.previousAnswerKey"
+                                                                    class="text-input compact-select"
+                                                                >
+                                                                    <option value="">Choose an earlier answer</option>
+                                                                    <option
+                                                                        v-for="option in answerReferenceOptionsFor(block)"
+                                                                        :key="option.key"
+                                                                        :value="option.key"
+                                                                    >
+                                                                        {{ option.label }}
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                        </template>
                                                         <template v-else>
                                                             <textarea
                                                                 v-model="block.content"
@@ -467,6 +519,80 @@
                                             Add step
                                         </button>
                                     </div>
+                                    <div
+                                        v-else
+                                        class="wizard-preview-list"
+                                    >
+                                        <article
+                                            v-for="(page, index) in draft.pages"
+                                            :key="page.id"
+                                            class="wizard-preview-card"
+                                        >
+                                            <span class="detail-meta">Step {{ index + 1 }} of {{ draft.pages.length }}</span>
+                                            <h2>{{ page.title || 'Untitled step' }}</h2>
+                                            <div class="wizard-preview-blocks">
+                                                <section
+                                                    v-for="block in page.blocks"
+                                                    :key="block.id"
+                                                    class="wizard-preview-block"
+                                                    :class="`wizard-preview-block-${block.type}`"
+                                                >
+                                                    <h3
+                                                        v-if="block.sectionTitle"
+                                                        class="wizard-preview-block-title"
+                                                    >
+                                                        {{ block.sectionTitle }}
+                                                    </h3>
+                                                    <template v-if="block.type === 'image'">
+                                                        <img
+                                                            v-if="block.imageUrl"
+                                                            :src="block.imageUrl"
+                                                            :alt="block.caption || page.title"
+                                                        />
+                                                        <p v-if="block.caption">{{ block.caption }}</p>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'questions'">
+                                                        <label
+                                                            v-for="question in block.questions"
+                                                            :key="question.id"
+                                                            class="wizard-preview-field"
+                                                        >
+                                                            <span>{{ question.label || 'Question' }}</span>
+                                                            <textarea
+                                                                v-if="question.inputType === 'textarea'"
+                                                                disabled
+                                                                :placeholder="question.placeholder"
+                                                            ></textarea>
+                                                            <input
+                                                                v-else
+                                                                disabled
+                                                                :type="question.inputType"
+                                                                :placeholder="question.placeholder"
+                                                            />
+                                                        </label>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'notes'">
+                                                        <label class="wizard-preview-field">
+                                                            <span>{{ block.content || 'Notes' }}</span>
+                                                            <textarea
+                                                                disabled
+                                                                placeholder="Write what you want to remember."
+                                                            ></textarea>
+                                                        </label>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'previous-answer'">
+                                                        <div class="wizard-preview-previous-answer">
+                                                            <span>{{ block.previousAnswerLabel || 'Previous answer' }}</span>
+                                                            <strong>Saved answer will appear here.</strong>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else>
+                                                        <p>{{ block.content }}</p>
+                                                    </template>
+                                                </section>
+                                            </div>
+                                        </article>
+                                    </div>
                                 </section>
 
                                 <section
@@ -492,8 +618,27 @@
                                                 {{ index + 1 }}. {{ page.title || 'Untitled step' }}
                                             </button>
                                         </div>
+                                        <div class="wizard-view-toggle">
+                                            <button
+                                                type="button"
+                                                :class="{ active: stepPageWizardView === 'build' }"
+                                                @click="stepPageWizardView = 'build'"
+                                            >
+                                                Build
+                                            </button>
+                                            <button
+                                                type="button"
+                                                :class="{ active: stepPageWizardView === 'preview' }"
+                                                @click="stepPageWizardView = 'preview'"
+                                            >
+                                                Preview
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="builder-list">
+                                    <div
+                                        v-if="stepPageWizardView === 'build'"
+                                        class="builder-list"
+                                    >
                                         <article
                                             v-if="activeStepPage"
                                             class="page-builder"
@@ -587,6 +732,7 @@
                                                                 <option value="standout">Standout</option>
                                                                 <option value="image">Image</option>
                                                                 <option value="resource">Resource</option>
+                                                                <option value="previous-answer">Previous answer</option>
                                                             </select>
                                                             <button
                                                                 class="icon-button"
@@ -619,6 +765,15 @@
                                                             </button>
                                                         </div>
                                                         <div class="block-fields">
+                                                            <label class="field">
+                                                                <span class="field-label">Section title (optional)</span>
+                                                                <input
+                                                                    v-model="block.sectionTitle"
+                                                                    class="text-input"
+                                                                    type="text"
+                                                                    placeholder="Add a heading for this block"
+                                                                />
+                                                            </label>
                                                             <template v-if="block.type === 'image'">
                                                                 <input
                                                                     v-model="block.imageUrl"
@@ -688,6 +843,29 @@
                                                                     placeholder="Prompt for a larger user notes section"
                                                                 ></textarea>
                                                             </template>
+                                                            <template v-else-if="block.type === 'previous-answer'">
+                                                                <div class="previous-answer-fields">
+                                                                    <input
+                                                                        v-model="block.previousAnswerLabel"
+                                                                        class="text-input"
+                                                                        type="text"
+                                                                        placeholder="Display label"
+                                                                    />
+                                                                    <select
+                                                                        v-model="block.previousAnswerKey"
+                                                                        class="text-input compact-select"
+                                                                    >
+                                                                        <option value="">Choose an earlier answer</option>
+                                                                        <option
+                                                                            v-for="option in answerReferenceOptionsFor(block)"
+                                                                            :key="option.key"
+                                                                            :value="option.key"
+                                                                        >
+                                                                            {{ option.label }}
+                                                                        </option>
+                                                                    </select>
+                                                                </div>
+                                                            </template>
                                                             <template v-else>
                                                                 <textarea
                                                                     v-model="block.content"
@@ -729,6 +907,80 @@
                                                 <Plus :size="18" />
                                                 Add page to this step
                                             </button>
+                                        </article>
+                                    </div>
+                                    <div
+                                        v-else
+                                        class="wizard-preview-list"
+                                    >
+                                        <article
+                                            v-for="(subPage, subIndex) in activeStepPage?.subPages || []"
+                                            :key="subPage.id"
+                                            class="wizard-preview-card wizard-preview-card-sub"
+                                        >
+                                            <span class="detail-meta">{{ activeStepPage?.title || 'Step' }} page {{ subIndex + 1 }}</span>
+                                            <h2>{{ subPage.title || 'Untitled page' }}</h2>
+                                            <div class="wizard-preview-blocks">
+                                                <section
+                                                    v-for="block in subPage.blocks"
+                                                    :key="block.id"
+                                                    class="wizard-preview-block"
+                                                    :class="`wizard-preview-block-${block.type}`"
+                                                >
+                                                    <h3
+                                                        v-if="block.sectionTitle"
+                                                        class="wizard-preview-block-title wizard-preview-block-title-sub"
+                                                    >
+                                                        {{ block.sectionTitle }}
+                                                    </h3>
+                                                    <template v-if="block.type === 'image'">
+                                                        <img
+                                                            v-if="block.imageUrl"
+                                                            :src="block.imageUrl"
+                                                            :alt="block.caption || subPage.title"
+                                                        />
+                                                        <p v-if="block.caption">{{ block.caption }}</p>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'questions'">
+                                                        <label
+                                                            v-for="question in block.questions"
+                                                            :key="question.id"
+                                                            class="wizard-preview-field"
+                                                        >
+                                                            <span>{{ question.label || 'Question' }}</span>
+                                                            <textarea
+                                                                v-if="question.inputType === 'textarea'"
+                                                                disabled
+                                                                :placeholder="question.placeholder"
+                                                            ></textarea>
+                                                            <input
+                                                                v-else
+                                                                disabled
+                                                                :type="question.inputType"
+                                                                :placeholder="question.placeholder"
+                                                            />
+                                                        </label>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'notes'">
+                                                        <label class="wizard-preview-field">
+                                                            <span>{{ block.content || 'Notes' }}</span>
+                                                            <textarea
+                                                                disabled
+                                                                placeholder="Write what you want to remember."
+                                                            ></textarea>
+                                                        </label>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'previous-answer'">
+                                                        <div class="wizard-preview-previous-answer">
+                                                            <span>{{ block.previousAnswerLabel || 'Previous answer' }}</span>
+                                                            <strong>Saved answer will appear here.</strong>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else>
+                                                        <p>{{ block.content }}</p>
+                                                    </template>
+                                                </section>
+                                            </div>
                                         </article>
                                     </div>
                                 </section>
@@ -822,7 +1074,7 @@
                                         <p>{{ project.description || 'No description yet.' }}</p>
                                         <span class="project-meta">Updated {{ formatDate(project.updated_at) }}</span>
                                     </span>
-                                    <span class="project-status">{{ project.status }}</span>
+                                    <span class="project-status">{{ formatStatus(project.status) }}</span>
                                 </button>
                             </li>
                         </ul>
@@ -873,17 +1125,65 @@
                                 </div>
                                 <div class="stat">
                                     <span class="stat-label">Status</span>
-                                    <strong>{{ selectedProject.status }}</strong>
+                                    <strong>{{ formatStatus(selectedProject.status) }}</strong>
                                 </div>
                             </div>
-                            <button
-                                class="primary-button"
-                                type="button"
-                                @click="openEditWizard(selectedProject)"
+                            <div class="detail-actions">
+                                <button
+                                    class="primary-button"
+                                    type="button"
+                                    @click="openEditWizard(selectedProject)"
+                                >
+                                    <FileText :size="18" />
+                                    Edit step-through
+                                </button>
+                                <button
+                                    v-if="selectedProject.status === 'draft'"
+                                    class="publish-button"
+                                    type="button"
+                                    :disabled="publishingProjectId === selectedProject.id"
+                                    @click="openPublishProjectModal(selectedProject)"
+                                >
+                                    <Rocket :size="18" />
+                                    {{ publishingProjectId === selectedProject.id ? 'Publishing' : 'Publish' }}
+                                </button>
+                                <NuxtLink
+                                    v-else-if="selectedProject.status === 'active'"
+                                    class="live-link"
+                                    :to="liveProjectPath(selectedProject)"
+                                >
+                                    <ExternalLink :size="18" />
+                                    Visit live step-through
+                                </NuxtLink>
+                                <button
+                                    class="danger-button"
+                                    type="button"
+                                    @click="openDeleteProjectModal(selectedProject)"
+                                >
+                                    <Trash2 :size="18" />
+                                    Delete project
+                                </button>
+                            </div>
+                            <p
+                                v-if="publishError"
+                                class="error-message"
                             >
-                                <FileText :size="18" />
-                                Edit step-through
-                            </button>
+                                {{ publishError }}
+                            </p>
+                            <div
+                                v-if="selectedProject.status === 'active'"
+                                class="live-url-card"
+                            >
+                                <span class="detail-meta">Live link</span>
+                                <code>{{ liveProjectUrl(selectedProject) }}</code>
+                            </div>
+                            <div
+                                v-else
+                                class="publish-note"
+                            >
+                                <Sparkles :size="18" />
+                                <span>Drafts stay private until you publish. The live step-through link appears here when it is ready.</span>
+                            </div>
                             <p class="detail-meta">Created {{ formatDate(selectedProject.created_at) }}</p>
                         </article>
                         <article
@@ -898,6 +1198,114 @@
                 </div>
             </div>
         </section>
+
+        <Teleport to="body">
+            <div
+                v-if="publishProjectTarget"
+                class="modal-backdrop"
+                role="presentation"
+                @click.self="closePublishProjectModal"
+            >
+                <section
+                    class="confirm-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="publish-project-title"
+                >
+                    <header class="danger-modal-header">
+                        <span class="detail-meta">Publish step-through</span>
+                        <h2 id="publish-project-title">{{ publishProjectTarget.title }}</h2>
+                    </header>
+                    <p>
+                        Publishing makes this step-through available from its live link. Users will be able to create
+                        their own private walkthrough instances and save answers.
+                    </p>
+                    <p
+                        v-if="publishError"
+                        class="error-message"
+                    >
+                        {{ publishError }}
+                    </p>
+                    <footer class="danger-modal-actions">
+                        <button
+                            class="secondary-button"
+                            type="button"
+                            @click="closePublishProjectModal"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            class="publish-button"
+                            type="button"
+                            :disabled="publishingProjectId === publishProjectTarget.id"
+                            @click="publishProject(publishProjectTarget)"
+                        >
+                            <Rocket :size="18" />
+                            {{ publishingProjectId === publishProjectTarget.id ? 'Publishing' : 'Publish' }}
+                        </button>
+                    </footer>
+                </section>
+            </div>
+
+            <div
+                v-if="deleteProjectTarget"
+                class="modal-backdrop"
+                role="presentation"
+                @click.self="closeDeleteProjectModal"
+            >
+                <section
+                    class="danger-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="delete-project-title"
+                >
+                    <header class="danger-modal-header">
+                        <span class="detail-meta">{{ deleteProjectTarget.status === 'active' ? 'Delete live project' : 'Delete project' }}</span>
+                        <h2 id="delete-project-title">{{ deleteProjectTarget.title }}</h2>
+                    </header>
+                    <p>
+                        This will delete the project from your dashboard and remove its live walkthrough instances.
+                        {{ deleteProjectTarget.status === 'active' ? 'Because this project is published, type its name exactly to confirm.' : 'This project is still a draft.' }}
+                    </p>
+                    <label
+                        v-if="deleteProjectTarget.status === 'active'"
+                        class="field"
+                    >
+                        <span class="field-label">Type {{ deleteProjectTarget.title }} to confirm</span>
+                        <input
+                            v-model="deleteProjectConfirmation"
+                            class="text-input"
+                            type="text"
+                            autocomplete="off"
+                        />
+                    </label>
+                    <p
+                        v-if="deleteProjectError"
+                        class="error-message"
+                    >
+                        {{ deleteProjectError }}
+                    </p>
+                    <footer class="danger-modal-actions">
+                        <button
+                            class="secondary-button"
+                            type="button"
+                            @click="closeDeleteProjectModal"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            class="danger-button"
+                            type="button"
+                            :disabled="deletingProject || !canConfirmDeleteProject"
+                            @click="deleteProject"
+                        >
+                            <Trash2 :size="18" />
+                            {{ deletingProject ? 'Deleting' : 'Delete project' }}
+                        </button>
+                    </footer>
+                </section>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -921,6 +1329,8 @@ import {
     NotebookPen,
     PanelRight,
     Plus,
+    ExternalLink,
+    Rocket,
     Search,
     Sparkles,
     TextQuote,
@@ -940,7 +1350,7 @@ type Project = {
 };
 
 type ProgressButton = 'start' | 'next' | 'done';
-type BlockType = 'content' | 'questions' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource';
+type BlockType = 'content' | 'questions' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
 type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
 
 type WizardBlock = {
@@ -951,6 +1361,9 @@ type WizardBlock = {
     caption: string;
     opensInModal: boolean;
     questions: WizardQuestion[];
+    previousAnswerKey: string;
+    previousAnswerLabel: string;
+    sectionTitle: string;
 };
 
 type WizardQuestion = {
@@ -986,15 +1399,43 @@ type WizardDraft = {
     pages: WizardPage[];
 };
 
+type PendingDashboardAction =
+    | {
+          type: 'save-project';
+          editingProjectId: string | null;
+          draft: WizardDraft;
+          wizardStep: number;
+          activeStepPageIndex: number;
+      }
+    | {
+          type: 'publish-project';
+          projectId: string;
+      }
+    | {
+          type: 'delete-project';
+          projectId: string;
+          confirmationTitle: string;
+      };
+
 const wizardStorageKey = 'stepthrough:create-wizard';
+const pendingDashboardActionKey = 'stepthrough:pending-dashboard-action';
 const { loggedIn, user } = useUserSession();
 const showCreate = ref(false);
 const creating = ref(false);
+const publishingProjectId = ref<string | null>(null);
 const createError = ref('');
+const publishError = ref('');
 const selectedProjectId = ref<string | null>(null);
 const editingProjectId = ref<string | null>(null);
+const publishProjectTarget = ref<Project | null>(null);
+const deleteProjectTarget = ref<Project | null>(null);
+const deleteProjectConfirmation = ref('');
+const deleteProjectError = ref('');
+const deletingProject = ref(false);
 const wizardStep = ref(0);
 const activeStepPageIndex = ref(0);
+const stepWizardView = ref<'build' | 'preview'>('build');
+const stepPageWizardView = ref<'build' | 'preview'>('build');
 
 const wizardSteps = [
     { title: 'Basics', short: 'Basics' },
@@ -1011,6 +1452,7 @@ const blockTypes = [
     { value: 'standout' as const, label: 'standout block', icon: Highlighter },
     { value: 'image' as const, label: 'image block', icon: Image },
     { value: 'resource' as const, label: 'resource link', icon: Link },
+    { value: 'previous-answer' as const, label: 'previous answer', icon: ListChecks },
 ];
 
 const draft = reactive<WizardDraft>(createInitialDraft());
@@ -1029,6 +1471,17 @@ const selectedProject = computed(() => {
     return projects.value.find((project) => project.id === selectedProjectId.value) || projects.value[0];
 });
 const activeStepPage = computed(() => draft.pages[activeStepPageIndex.value] || draft.pages[0] || null);
+const canConfirmDeleteProject = computed(() => {
+    if (!deleteProjectTarget.value) {
+        return false;
+    }
+
+    if (deleteProjectTarget.value.status !== 'active') {
+        return true;
+    }
+
+    return deleteProjectConfirmation.value === deleteProjectTarget.value.title;
+});
 
 watch(
     () => draft.pages.length,
@@ -1057,8 +1510,15 @@ watch(
     { deep: true },
 );
 
+watch(loggedIn, (value) => {
+    if (value) {
+        replayPendingDashboardAction();
+    }
+});
+
 onMounted(() => {
     loadSavedCreateDraft();
+    replayPendingDashboardAction();
 });
 
 function createInitialDraft(): WizardDraft {
@@ -1133,6 +1593,7 @@ function createBlock(type: BlockType): WizardBlock {
         standout: 'Highlight the thing the user should not miss.',
         image: '',
         resource: 'Link to a resource, reference, or quick info page.',
+        'previous-answer': 'Bring an earlier answer forward here.',
     };
 
     return {
@@ -1143,6 +1604,9 @@ function createBlock(type: BlockType): WizardBlock {
         caption: type === 'image' ? 'A visual reference for this step.' : '',
         opensInModal: type === 'resource',
         questions: type === 'questions' ? [createQuestion()] : [],
+        previousAnswerKey: '',
+        previousAnswerLabel: 'Previous answer',
+        sectionTitle: '',
     };
 }
 
@@ -1188,6 +1652,7 @@ function normalizeDraft(value: Partial<WizardDraft>): WizardDraft {
 
 function openCreateWizard() {
     createError.value = '';
+    publishError.value = '';
     editingProjectId.value = null;
     loadSavedCreateDraft();
     showCreate.value = true;
@@ -1199,12 +1664,43 @@ function closeWizard() {
 
 function openEditWizard(project: Project) {
     createError.value = '';
+    publishError.value = '';
     editingProjectId.value = project.id;
     selectedProjectId.value = project.id;
     hydrateDraftFromProject(project);
     wizardStep.value = 0;
     activeStepPageIndex.value = 0;
     showCreate.value = true;
+}
+
+function openDeleteProjectModal(project: Project) {
+    deleteProjectTarget.value = project;
+    deleteProjectConfirmation.value = '';
+    deleteProjectError.value = '';
+}
+
+function closeDeleteProjectModal() {
+    if (deletingProject.value) {
+        return;
+    }
+
+    deleteProjectTarget.value = null;
+    deleteProjectConfirmation.value = '';
+    deleteProjectError.value = '';
+}
+
+function openPublishProjectModal(project: Project) {
+    publishProjectTarget.value = project;
+    publishError.value = '';
+}
+
+function closePublishProjectModal() {
+    if (publishingProjectId.value) {
+        return;
+    }
+
+    publishProjectTarget.value = null;
+    publishError.value = '';
 }
 
 function loadSavedCreateDraft() {
@@ -1337,6 +1833,8 @@ function syncBlockType(block: WizardBlock) {
     block.caption = block.type === 'image' ? block.caption || defaults.caption : '';
     block.opensInModal = block.type === 'resource' ? block.opensInModal : false;
     block.questions = block.type === 'questions' ? block.questions.length ? block.questions : defaults.questions : [];
+    block.previousAnswerKey = block.type === 'previous-answer' ? block.previousAnswerKey : '';
+    block.previousAnswerLabel = block.type === 'previous-answer' ? block.previousAnswerLabel || defaults.previousAnswerLabel : '';
 }
 
 function blockPlaceholder(type: BlockType) {
@@ -1349,6 +1847,7 @@ function blockPlaceholder(type: BlockType) {
         standout: 'Highlighted callout content',
         image: 'Image URL or image block note',
         resource: 'Resource link or modal page title',
+        'previous-answer': 'Bring an earlier answer forward',
     };
 
     return placeholders[type];
@@ -1374,6 +1873,9 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 caption: typeof block.caption === 'string' ? block.caption : '',
                 opensInModal: Boolean(block.opensInModal),
                 questions: type === 'questions' ? questions.length ? questions : [createQuestion()] : [],
+                previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
+                previousAnswerLabel: type === 'previous-answer' && typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : 'Previous answer',
+                sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
             };
         });
 
@@ -1412,7 +1914,8 @@ function normalizeBlockType(value: unknown): BlockType {
         value === 'quote' ||
         value === 'standout' ||
         value === 'image' ||
-        value === 'resource'
+        value === 'resource' ||
+        value === 'previous-answer'
     ) {
         return value;
     }
@@ -1426,6 +1929,72 @@ function normalizeInputType(value: unknown): QuestionInputType {
     }
 
     return 'text';
+}
+
+function answerReferenceOptionsFor(targetBlock: WizardBlock) {
+    const options: { key: string; label: string }[] = [];
+    let foundTarget = false;
+
+    for (const { blocks, screenKey, screenLabel } of collectAnswerScreens(draft.pages)) {
+        for (const block of blocks) {
+            if (block.id === targetBlock.id) {
+                foundTarget = true;
+                break;
+            }
+
+            options.push(...collectBlockAnswerOptions(block, screenKey, screenLabel));
+        }
+
+        if (foundTarget) {
+            break;
+        }
+    }
+
+    return foundTarget ? options : collectAnswerScreens(draft.pages).flatMap(({ blocks, screenKey, screenLabel }) => blocks.flatMap((block) => collectBlockAnswerOptions(block, screenKey, screenLabel)));
+}
+
+function collectAnswerScreens(pages: WizardPage[]) {
+    return pages.flatMap((page, pageIndex) => {
+        const stepKey = `step-${page.id || pageIndex}`;
+        const stepLabel = `${pageIndex + 1}. ${page.title || `Step ${pageIndex + 1}`}`;
+        const stepScreen = {
+            blocks: page.blocks,
+            screenKey: stepKey,
+            screenLabel: stepLabel,
+        };
+        const subPageScreens = page.subPages.map((subPage, subIndex) => {
+            const subPageKey = `step-${page.id || pageIndex}-page-${subPage.id || subIndex}`;
+            const subPageLabel = `${stepLabel}: ${subPage.title || `Page ${subIndex + 1}`}`;
+
+            return {
+                blocks: subPage.blocks,
+                screenKey: subPageKey,
+                screenLabel: subPageLabel,
+            };
+        });
+
+        return [stepScreen, ...subPageScreens];
+    });
+}
+
+function collectBlockAnswerOptions(block: WizardBlock, screenKey: string, screenLabel: string) {
+    if (block.type === 'questions') {
+        return block.questions.map((question) => ({
+            key: `${screenKey}:${question.id}`,
+            label: `${screenLabel} - ${question.label || 'Question'}`,
+        }));
+    }
+
+    if (block.type === 'notes') {
+        return [
+            {
+                key: `${screenKey}:${block.id}`,
+                label: `${screenLabel} - ${block.content || 'Notes'}`,
+            },
+        ];
+    }
+
+    return [];
 }
 
 function normalizeButton(value: unknown, index: number): ProgressButton {
@@ -1480,23 +2049,9 @@ async function onSaveProject() {
     creating.value = true;
 
     try {
-        const payload = {
-            title: draft.title,
-            description: draft.description,
-            stepCount: draft.pages.length,
-            blueprint: {
-                welcomeBack: draft.welcomeBack,
-                progressButtons: {
-                    returningUser: 'continue',
-                },
-                pages: draft.pages,
-            },
-        };
         const saved = await $fetch<Project>(editingProjectId.value ? `/api/projects/${editingProjectId.value}` : '/api/projects', {
             method: editingProjectId.value ? 'PUT' : 'POST',
-            body: {
-                ...payload,
-            },
+            body: createProjectPayload(),
         });
 
         showCreate.value = false;
@@ -1505,10 +2060,228 @@ async function onSaveProject() {
         resetDraft();
         await refresh();
     } catch (error: any) {
+        if (redirectToLoginIfUnauthorized(error)) {
+            storePendingDashboardAction({
+                type: 'save-project',
+                editingProjectId: editingProjectId.value,
+                draft: JSON.parse(JSON.stringify(draft)),
+                wizardStep: wizardStep.value,
+                activeStepPageIndex: activeStepPageIndex.value,
+            });
+            return;
+        }
+
         createError.value = error?.data?.message || `Could not ${editingProjectId.value ? 'update' : 'create'} the project.`;
     } finally {
         creating.value = false;
     }
+}
+
+async function publishProject(project: Project) {
+    publishError.value = '';
+    publishingProjectId.value = project.id;
+
+    try {
+        const published = await $fetch<Project>(`/api/projects/${project.id}/publish`, {
+            method: 'POST',
+        });
+
+        selectedProjectId.value = published.id;
+        publishProjectTarget.value = null;
+        await refresh();
+    } catch (error: any) {
+        if (redirectToLoginIfUnauthorized(error)) {
+            storePendingDashboardAction({
+                type: 'publish-project',
+                projectId: project.id,
+            });
+            return;
+        }
+
+        publishError.value = error?.data?.message || 'Could not publish this step-through.';
+    } finally {
+        publishingProjectId.value = null;
+    }
+}
+
+async function deleteProject() {
+    if (!deleteProjectTarget.value || !canConfirmDeleteProject.value) {
+        return;
+    }
+
+    deleteProjectError.value = '';
+    deletingProject.value = true;
+    const projectId = deleteProjectTarget.value.id;
+
+    try {
+        await $fetch<Project>(`/api/projects/${projectId}`, {
+            method: 'DELETE',
+            body: {
+                confirmationTitle: deleteProjectConfirmation.value,
+            },
+        });
+
+        deleteProjectTarget.value = null;
+        deleteProjectConfirmation.value = '';
+
+        if (selectedProjectId.value === projectId) {
+            selectedProjectId.value = null;
+        }
+
+        await refresh();
+
+        if (!selectedProjectId.value && projects.value.length) {
+            selectedProjectId.value = projects.value[0].id;
+        }
+    } catch (error: any) {
+        if (redirectToLoginIfUnauthorized(error)) {
+            storePendingDashboardAction({
+                type: 'delete-project',
+                projectId,
+                confirmationTitle: deleteProjectConfirmation.value,
+            });
+            return;
+        }
+
+        deleteProjectError.value = error?.data?.message || 'Could not delete this project.';
+    } finally {
+        deletingProject.value = false;
+    }
+}
+
+function createProjectPayload() {
+    return {
+        title: draft.title,
+        description: draft.description,
+        stepCount: draft.pages.length,
+        blueprint: {
+            welcomeBack: draft.welcomeBack,
+            progressButtons: {
+                returningUser: 'continue',
+            },
+            pages: draft.pages,
+        },
+    };
+}
+
+function storePendingDashboardAction(action: PendingDashboardAction) {
+    if (!import.meta.client) {
+        return;
+    }
+
+    sessionStorage.setItem(pendingDashboardActionKey, JSON.stringify(action));
+}
+
+async function replayPendingDashboardAction() {
+    if (!import.meta.client || !loggedIn.value) {
+        return;
+    }
+
+    const saved = sessionStorage.getItem(pendingDashboardActionKey);
+
+    if (!saved) {
+        return;
+    }
+
+    sessionStorage.removeItem(pendingDashboardActionKey);
+
+    try {
+        const action = JSON.parse(saved) as PendingDashboardAction;
+
+        if (action.type === 'save-project') {
+            Object.assign(draft, normalizeDraft(action.draft));
+            editingProjectId.value = action.editingProjectId;
+            wizardStep.value = action.wizardStep;
+            activeStepPageIndex.value = action.activeStepPageIndex;
+            showCreate.value = true;
+            creating.value = true;
+
+            const persisted = await $fetch<Project>(action.editingProjectId ? `/api/projects/${action.editingProjectId}` : '/api/projects', {
+                method: action.editingProjectId ? 'PUT' : 'POST',
+                body: createProjectPayload(),
+            });
+
+            selectedProjectId.value = persisted.id;
+            editingProjectId.value = null;
+            showCreate.value = false;
+            resetDraft();
+            await refresh();
+            return;
+        }
+
+        if (action.type === 'publish-project') {
+            const published = await $fetch<Project>(`/api/projects/${action.projectId}/publish`, {
+                method: 'POST',
+            });
+
+            selectedProjectId.value = published.id;
+            await refresh();
+            return;
+        }
+
+        if (action.type === 'delete-project') {
+            await $fetch<Project>(`/api/projects/${action.projectId}`, {
+                method: 'DELETE',
+                body: {
+                    confirmationTitle: action.confirmationTitle,
+                },
+            });
+
+            selectedProjectId.value = null;
+            await refresh();
+        }
+    } catch (error: any) {
+        if (error?.data?.message) {
+            createError.value = error.data.message;
+        }
+    } finally {
+        creating.value = false;
+        publishingProjectId.value = null;
+        deletingProject.value = false;
+    }
+}
+
+function redirectToLoginIfUnauthorized(error: any) {
+    const statusCode = error?.statusCode || error?.data?.statusCode || error?.response?.status;
+
+    if (statusCode !== 401) {
+        return false;
+    }
+
+    navigateTo(loginUrl(), { external: true });
+    return true;
+}
+
+function loginUrl() {
+    if (!import.meta.client) {
+        return '/auth/google';
+    }
+
+    const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    return `/auth/google?state=${encodeURIComponent(returnTo)}`;
+}
+
+function formatStatus(status: Project['status']) {
+    const labels: Record<Project['status'], string> = {
+        draft: 'Draft',
+        active: 'Published',
+        archived: 'Archived',
+    };
+
+    return labels[status];
+}
+
+function liveProjectPath(project: Pick<Project, 'id'>) {
+    return `/live/${project.id}`;
+}
+
+function liveProjectUrl(project: Pick<Project, 'id'>) {
+    if (!import.meta.client) {
+        return liveProjectPath(project);
+    }
+
+    return `${window.location.origin}${liveProjectPath(project)}`;
 }
 
 function formatDate(timestamp: number) {
