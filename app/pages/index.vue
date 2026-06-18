@@ -134,7 +134,7 @@
                         <button
                             class="primary-button"
                             type="button"
-                            @click="openWizard"
+                            @click="openCreateWizard"
                         >
                             <Plus :size="18" />
                             Create project
@@ -158,7 +158,7 @@
                         >
                             <header class="wizard-header">
                                 <div>
-                                    <p class="detail-meta">Page Click Through Creator</p>
+                                    <p class="detail-meta">{{ editingProjectId ? 'Edit Step-Through' : 'Page Click Through Creator' }}</p>
                                     <h2>{{ wizardSteps[wizardStep].title }}</h2>
                                 </div>
                                 <button
@@ -745,7 +745,7 @@
                                     v-else
                                     class="project-meta"
                                 >
-                                    Draft saves automatically in this browser.
+                                {{ editingProjectId ? 'Changes update this step-through when saved.' : 'Draft saves automatically in this browser.' }}
                                 </p>
                                 <div class="footer-actions">
                                     <button
@@ -771,10 +771,10 @@
                                         class="primary-button"
                                         type="button"
                                         :disabled="creating"
-                                        @click="onCreateProject"
+                                        @click="onSaveProject"
                                     >
                                         <Check :size="18" />
-                                        Done
+                                        {{ editingProjectId ? 'Save changes' : 'Done' }}
                                     </button>
                                 </div>
                             </footer>
@@ -796,7 +796,7 @@
                             <button
                                 class="primary-button"
                                 type="button"
-                                @click="openWizard"
+                                @click="openCreateWizard"
                             >
                                 <Plus :size="18" />
                                 Create project
@@ -876,6 +876,14 @@
                                     <strong>{{ selectedProject.status }}</strong>
                                 </div>
                             </div>
+                            <button
+                                class="primary-button"
+                                type="button"
+                                @click="openEditWizard(selectedProject)"
+                            >
+                                <FileText :size="18" />
+                                Edit step-through
+                            </button>
                             <p class="detail-meta">Created {{ formatDate(selectedProject.created_at) }}</p>
                         </article>
                         <article
@@ -899,27 +907,32 @@ import {
     ArrowRight,
     ArrowDown,
     ArrowUp,
-    BookOpen,
     Check,
     CircleUserRound,
     FileText,
+    Heading1,
+    Highlighter,
     Image,
+    ListChecks,
     LayoutGrid,
     Link,
     LogIn,
     LogOut,
-    MessageSquareQuote,
+    NotebookPen,
     PanelRight,
     Plus,
     Search,
     Sparkles,
+    TextQuote,
     Trash2,
+    Type,
 } from '@lucide/vue';
 
 type Project = {
     id: string;
     title: string;
     description: string;
+    blueprint?: string | Record<string, unknown>;
     status: 'draft' | 'active' | 'archived';
     step_count: number;
     created_at: number;
@@ -979,6 +992,7 @@ const showCreate = ref(false);
 const creating = ref(false);
 const createError = ref('');
 const selectedProjectId = ref<string | null>(null);
+const editingProjectId = ref<string | null>(null);
 const wizardStep = ref(0);
 const activeStepPageIndex = ref(0);
 
@@ -989,12 +1003,12 @@ const wizardSteps = [
 ];
 
 const blockTypes = [
-    { value: 'content' as const, label: 'content block', icon: FileText },
-    { value: 'questions' as const, label: 'question block', icon: MessageSquareQuote },
-    { value: 'notes' as const, label: 'user notes block', icon: BookOpen },
-    { value: 'hero' as const, label: 'hero block', icon: BookOpen },
-    { value: 'quote' as const, label: 'quote block', icon: MessageSquareQuote },
-    { value: 'standout' as const, label: 'standout block', icon: Sparkles },
+    { value: 'content' as const, label: 'content block', icon: Type },
+    { value: 'questions' as const, label: 'question block', icon: ListChecks },
+    { value: 'notes' as const, label: 'user notes block', icon: NotebookPen },
+    { value: 'hero' as const, label: 'hero block', icon: Heading1 },
+    { value: 'quote' as const, label: 'quote block', icon: TextQuote },
+    { value: 'standout' as const, label: 'standout block', icon: Highlighter },
     { value: 'image' as const, label: 'image block', icon: Image },
     { value: 'resource' as const, label: 'resource link', icon: Link },
 ];
@@ -1036,7 +1050,7 @@ watch(projects, (value) => {
 watch(
     draft,
     (value) => {
-        if (import.meta.client) {
+        if (import.meta.client && showCreate.value && !editingProjectId.value) {
             localStorage.setItem(wizardStorageKey, JSON.stringify(value));
         }
     },
@@ -1044,17 +1058,7 @@ watch(
 );
 
 onMounted(() => {
-    const saved = localStorage.getItem(wizardStorageKey);
-
-    if (!saved) {
-        return;
-    }
-
-    try {
-        Object.assign(draft, normalizeDraft(JSON.parse(saved)));
-    } catch {
-        localStorage.removeItem(wizardStorageKey);
-    }
+    loadSavedCreateDraft();
 });
 
 function createInitialDraft(): WizardDraft {
@@ -1182,13 +1186,80 @@ function normalizeDraft(value: Partial<WizardDraft>): WizardDraft {
     return normalized;
 }
 
-function openWizard() {
+function openCreateWizard() {
     createError.value = '';
+    editingProjectId.value = null;
+    loadSavedCreateDraft();
     showCreate.value = true;
 }
 
 function closeWizard() {
     showCreate.value = false;
+}
+
+function openEditWizard(project: Project) {
+    createError.value = '';
+    editingProjectId.value = project.id;
+    selectedProjectId.value = project.id;
+    hydrateDraftFromProject(project);
+    wizardStep.value = 0;
+    activeStepPageIndex.value = 0;
+    showCreate.value = true;
+}
+
+function loadSavedCreateDraft() {
+    if (!import.meta.client) {
+        return;
+    }
+
+    const saved = localStorage.getItem(wizardStorageKey);
+
+    if (!saved) {
+        Object.assign(draft, createInitialDraft());
+        syncStepButtons();
+        return;
+    }
+
+    try {
+        Object.assign(draft, normalizeDraft(JSON.parse(saved)));
+    } catch {
+        localStorage.removeItem(wizardStorageKey);
+        Object.assign(draft, createInitialDraft());
+    }
+
+    syncStepButtons();
+}
+
+function hydrateDraftFromProject(project: Project) {
+    const blueprint = parseBlueprint(project.blueprint);
+
+    Object.assign(
+        draft,
+        normalizeDraft({
+            title: project.title,
+            description: project.description,
+            welcomeBack: blueprint.welcomeBack,
+            pages: blueprint.pages,
+        }),
+    );
+    syncStepButtons();
+}
+
+function parseBlueprint(value: Project['blueprint']): Partial<WizardDraft> {
+    if (!value) {
+        return {};
+    }
+
+    if (typeof value === 'object') {
+        return value as Partial<WizardDraft>;
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
 }
 
 function resetDraft() {
@@ -1397,7 +1468,7 @@ function formatSubPageProgress(index: number, total: number) {
     return 'Back + Next';
 }
 
-async function onCreateProject() {
+async function onSaveProject() {
     createError.value = '';
 
     if (!draft.title.trim()) {
@@ -1409,28 +1480,32 @@ async function onCreateProject() {
     creating.value = true;
 
     try {
-        const created = await $fetch<Project>('/api/projects', {
-            method: 'POST',
-            body: {
-                title: draft.title,
-                description: draft.description,
-                stepCount: draft.pages.length,
-                blueprint: {
-                    welcomeBack: draft.welcomeBack,
-                    progressButtons: {
-                        returningUser: 'continue',
-                    },
-                    pages: draft.pages,
+        const payload = {
+            title: draft.title,
+            description: draft.description,
+            stepCount: draft.pages.length,
+            blueprint: {
+                welcomeBack: draft.welcomeBack,
+                progressButtons: {
+                    returningUser: 'continue',
                 },
+                pages: draft.pages,
+            },
+        };
+        const saved = await $fetch<Project>(editingProjectId.value ? `/api/projects/${editingProjectId.value}` : '/api/projects', {
+            method: editingProjectId.value ? 'PUT' : 'POST',
+            body: {
+                ...payload,
             },
         });
 
         showCreate.value = false;
-        selectedProjectId.value = created.id;
+        selectedProjectId.value = saved.id;
+        editingProjectId.value = null;
         resetDraft();
         await refresh();
     } catch (error: any) {
-        createError.value = error?.data?.message || 'Could not create the project.';
+        createError.value = error?.data?.message || `Could not ${editingProjectId.value ? 'update' : 'create'} the project.`;
     } finally {
         creating.value = false;
     }

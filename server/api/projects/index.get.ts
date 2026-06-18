@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
     const db = useDatabase();
     const projects = await db.sql`
-        SELECT id, title, description, status, step_count, created_at, updated_at
+        SELECT id, title, description, blueprint, status, step_count, created_at, updated_at
         FROM projects
         WHERE user_id = ${user.uid}
             AND deleted_at IS NULL
