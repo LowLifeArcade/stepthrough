@@ -506,6 +506,21 @@ body {
     gap: 0.8rem;
 }
 
+.wizard-pane-sticky-copy {
+    align-items: start;
+}
+
+.wizard-pane-sticky-copy .wizard-copy {
+    position: sticky;
+    top: 1.4rem;
+    z-index: 2;
+    border: 1px solid var(--color-border);
+    border-radius: 0.8rem;
+    background: white;
+    padding: 1rem;
+    box-shadow: 0 0.8rem 2.4rem rgba(33, 28, 20, 0.08);
+}
+
 .wizard-copy h3 {
     font-size: 2rem;
     line-height: 1.2;
@@ -1836,6 +1851,10 @@ body {
     .review-pane,
     .created-preview {
         grid-template-columns: 1fr;
+    }
+
+    .wizard-pane-sticky-copy .wizard-copy {
+        position: static;
     }
 
     .created-preview {

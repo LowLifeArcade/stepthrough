@@ -153,6 +153,7 @@
 
                         <section
                             v-if="showCreate"
+                            ref="wizardShell"
                             class="wizard-shell"
                             aria-label="Project creation wizard"
                         >
@@ -245,7 +246,7 @@
 
                                 <section
                                     v-else-if="wizardStep === 1"
-                                    class="wizard-pane"
+                                    class="wizard-pane wizard-pane-sticky-copy"
                                 >
                                     <div class="wizard-copy">
                                         <h3>Compose the main steps.</h3>
@@ -597,7 +598,7 @@
 
                                 <section
                                     v-else
-                                    class="wizard-pane"
+                                    class="wizard-pane wizard-pane-sticky-copy"
                                 >
                                     <div class="wizard-copy">
                                         <h3>Add pages inside each step.</h3>
@@ -1004,7 +1005,7 @@
                                         class="secondary-button"
                                         type="button"
                                         :disabled="wizardStep === 0"
-                                        @click="wizardStep -= 1"
+                                        @click="goToWizardStep(wizardStep - 1)"
                                     >
                                         <ArrowLeft :size="18" />
                                         Back
@@ -1013,7 +1014,7 @@
                                         v-if="wizardStep < wizardSteps.length - 1"
                                         class="primary-button"
                                         type="button"
-                                        @click="wizardStep += 1"
+                                        @click="goToWizardStep(wizardStep + 1)"
                                     >
                                         {{ wizardStep === 0 ? 'Compose steps' : 'Continue' }}
                                         <ArrowRight :size="18" />
@@ -1432,6 +1433,7 @@ const deleteProjectTarget = ref<Project | null>(null);
 const deleteProjectConfirmation = ref('');
 const deleteProjectError = ref('');
 const deletingProject = ref(false);
+const wizardShell = ref<HTMLElement | null>(null);
 const wizardStep = ref(0);
 const activeStepPageIndex = ref(0);
 const stepWizardView = ref<'build' | 'preview'>('build');
@@ -1671,6 +1673,19 @@ function openEditWizard(project: Project) {
     wizardStep.value = 0;
     activeStepPageIndex.value = 0;
     showCreate.value = true;
+}
+
+async function goToWizardStep(nextStep: number) {
+    wizardStep.value = Math.min(Math.max(nextStep, 0), wizardSteps.length - 1);
+    await nextTick();
+    scrollWizardToTop();
+}
+
+function scrollWizardToTop() {
+    wizardShell.value?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+    });
 }
 
 function openDeleteProjectModal(project: Project) {
