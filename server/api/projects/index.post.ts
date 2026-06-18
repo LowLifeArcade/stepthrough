@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const title = String(body?.title || '').trim();
     const description = String(body?.description || '').trim();
+    const stepCount = Math.max(0, Number.parseInt(String(body?.stepCount || 0), 10) || 0);
+    const blueprint = JSON.stringify(body?.blueprint || {});
 
     if (!title) {
         throw createError({ statusCode: 422, message: 'Project title is required' });
@@ -18,8 +20,8 @@ export default defineEventHandler(async (event) => {
     const db = useDatabase();
     const id = uuidv7();
     const created = await db.sql`
-        INSERT INTO projects (id, user_id, title, description)
-        VALUES (${id}, ${user.uid}, ${title}, ${description})
+        INSERT INTO projects (id, user_id, title, description, step_count, blueprint)
+        VALUES (${id}, ${user.uid}, ${title}, ${description}, ${stepCount}, ${blueprint})
         RETURNING id, title, description, status, step_count, created_at, updated_at
     `;
 

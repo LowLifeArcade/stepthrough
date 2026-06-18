@@ -16,6 +16,7 @@
         "db:info:dev": "wrangler d1 info stepthrough-db-dev",
         "db:migration": "wrangler d1 migrations create STEPTHROUGH",
         "db:migrate:local": "wrangler d1 migrations apply STEPTHROUGH --local",
+        "db:migrate:local:dev": "wrangler d1 migrations apply STEPTHROUGH --local --env dev",
         "db:migrate:remote": "wrangler d1 migrations apply STEPTHROUGH --remote",
         "db:migrate:remote:dev": "wrangler d1 migrations apply STEPTHROUGH --remote --env dev",
         "db:migrate:status": "wrangler d1 migrations list stepthrough-db",
