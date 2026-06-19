@@ -10,8 +10,8 @@
                 </div>
                 <h1>Build guided work one step at a time.</h1>
                 <p>
-                    Turn repeatable workflows into clear step-through projects. Sign in with Google to open your
-                    dashboard and start shaping the first flow.
+                    Turn repeatable workflows into guided step-throughs with pages, prompts, notes, and saved answers.
+                    Build the project once, publish a live link, then let each person start their own private walkthrough.
                 </p>
                 <div class="login-actions">
                     <a
@@ -21,6 +21,39 @@
                         <LogIn :size="18" />
                         Sign in with Google
                     </a>
+                </div>
+                <div
+                    class="login-info-grid"
+                    aria-label="How StepThrough works"
+                >
+                    <article class="login-info-card">
+                        <span class="login-info-icon">
+                            <LayoutGrid :size="20" />
+                        </span>
+                        <strong>Build the shape</strong>
+                        <p>Create a project, add ordered steps, and break each step into pages when a workflow needs more detail.</p>
+                    </article>
+                    <article class="login-info-card">
+                        <span class="login-info-icon">
+                            <ListChecks :size="20" />
+                        </span>
+                        <strong>Mix useful blocks</strong>
+                        <p>Combine content, images, questions, note areas, resources, standout callouts, and previous answers.</p>
+                    </article>
+                    <article class="login-info-card">
+                        <span class="login-info-icon">
+                            <Rocket :size="20" />
+                        </span>
+                        <strong>Publish a live link</strong>
+                        <p>Drafts stay private until the step-through is ready. Published projects get a live page people can open.</p>
+                    </article>
+                    <article class="login-info-card">
+                        <span class="login-info-icon">
+                            <NotebookPen :size="20" />
+                        </span>
+                        <strong>Resume privately</strong>
+                        <p>Each signed-in viewer can create separate walkthrough instances, save answers, and come back later.</p>
+                    </article>
                 </div>
             </section>
 
@@ -43,22 +76,41 @@
                     </aside>
                     <div class="preview-main">
                         <article class="preview-row">
-                            <strong>Client setup</strong>
+                            <strong>Friend prayer guide</strong>
                             <span class="project-status">Active</span>
                         </article>
                         <article class="preview-row">
-                            <strong>QA review</strong>
+                            <strong>New client onboarding</strong>
                             <span class="project-status">Draft</span>
                         </article>
                         <article class="preview-row">
-                            <strong>Launch steps</strong>
+                            <strong>Launch checklist</strong>
                             <span class="project-status">Draft</span>
+                        </article>
+                        <article class="preview-live-card">
+                            <span class="detail-meta">Live step-through</span>
+                            <strong>3 saved walkthroughs</strong>
+                            <p>Each person gets their own progress, notes, and answers.</p>
                         </article>
                     </div>
                     <aside class="preview-sub">
-                        <div class="preview-line"></div>
-                        <div class="preview-line"></div>
-                        <div class="preview-line"></div>
+                        <span class="detail-meta">Builder flow</span>
+                        <div class="preview-flow-step active">
+                            <span>1</span>
+                            Basics
+                        </div>
+                        <div class="preview-flow-step">
+                            <span>2</span>
+                            Steps
+                        </div>
+                        <div class="preview-flow-step">
+                            <span>3</span>
+                            Step Pages
+                        </div>
+                        <div class="preview-answer-callout">
+                            <Sparkles :size="18" />
+                            <p>Previous answers can appear later in the walkthrough.</p>
+                        </div>
                     </aside>
                 </div>
             </section>
@@ -78,14 +130,24 @@
                 </div>
 
                 <nav class="nav-list">
-                    <a class="nav-item active">
+                    <button
+                        class="nav-item"
+                        :class="{ active: activeDashboardTab === 'projects' }"
+                        type="button"
+                        @click="showDashboardTab('projects')"
+                    >
                         <LayoutGrid :size="18" />
                         Projects
-                    </a>
-                    <a class="nav-item">
+                    </button>
+                    <button
+                        class="nav-item"
+                        :class="{ active: activeDashboardTab === 'templates' }"
+                        type="button"
+                        @click="showDashboardTab('templates')"
+                    >
                         <PanelRight :size="18" />
                         Templates
-                    </a>
+                    </button>
                 </nav>
 
                 <div class="sidebar-footer">
@@ -119,10 +181,19 @@
             <div class="dashboard-body">
                 <header class="topbar">
                     <div>
-                        <h1>Projects</h1>
-                        <p>{{ projects.length }} step-through{{ projects.length === 1 ? '' : 's' }}</p>
+                        <h1>{{ activeDashboardTab === 'projects' ? 'Projects' : 'Templates' }}</h1>
+                        <p>
+                            {{
+                                activeDashboardTab === 'projects'
+                                    ? `${projects.length} step-through${projects.length === 1 ? '' : 's'}`
+                                    : 'Reusable step-through starters'
+                            }}
+                        </p>
                     </div>
-                    <div class="topbar-actions">
+                    <div
+                        v-if="activeDashboardTab === 'projects'"
+                        class="topbar-actions"
+                    >
                         <button
                             class="icon-button"
                             type="button"
@@ -142,7 +213,10 @@
                     </div>
                 </header>
 
-                <div class="workspace">
+                <div
+                    v-if="activeDashboardTab === 'projects'"
+                    class="workspace"
+                >
                     <main class="main-window">
                         <div class="window-heading">
                             <div>
@@ -162,13 +236,24 @@
                                     <p class="detail-meta">{{ editingProjectId ? 'Edit Step-Through' : 'Page Click Through Creator' }}</p>
                                     <h2>{{ wizardSteps[wizardStep].title }}</h2>
                                 </div>
-                                <button
-                                    class="secondary-button"
-                                    type="button"
-                                    @click="closeWizard"
-                                >
-                                    Close
-                                </button>
+                                <div class="wizard-header-actions">
+                                    <button
+                                        class="primary-button"
+                                        type="button"
+                                        :disabled="creating"
+                                        @click="onSaveProject"
+                                    >
+                                        <Save :size="18" />
+                                        {{ creating ? 'Saving' : editingProjectId ? 'Save changes' : 'Save draft' }}
+                                    </button>
+                                    <button
+                                        class="secondary-button"
+                                        type="button"
+                                        @click="closeWizard"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
                             </header>
 
                             <nav
@@ -225,7 +310,7 @@
                                                 type="checkbox"
                                             />
                                             <span>
-                                                <strong>Prompt every time this step-through opens</strong>
+                                                <strong>Prompt every time this step-through is continued</strong>
                                                 <small>Useful for a welcome-back reminder, opening prayer, or intention.</small>
                                             </span>
                                         </label>
@@ -341,6 +426,10 @@
                                                     class="block-row"
                                                 >
                                                     <div class="block-tools">
+                                                        <div class="block-type-detail">
+                                                            <strong>{{ blockTypeTitle(block.type) }}</strong>
+                                                            <span>{{ blockTypeDescription(block.type) }}</span>
+                                                        </div>
                                                         <select
                                                             v-model="block.type"
                                                             class="text-input compact-select"
@@ -494,19 +583,31 @@
                                                                 class="text-input textarea-input compact-textarea"
                                                                 :placeholder="blockPlaceholder(block.type)"
                                                             ></textarea>
-                                                            <label
-                                                                v-if="block.type === 'resource'"
-                                                                class="toggle-row compact-toggle"
-                                                            >
-                                                                <input
-                                                                    v-model="block.opensInModal"
-                                                                    type="checkbox"
-                                                                />
-                                                                <span>
-                                                                    <strong>Open as modal</strong>
-                                                                </span>
-                                                            </label>
                                                         </template>
+                                                        <label
+                                                            v-if="canFrameBlock(block.type)"
+                                                            class="toggle-row compact-toggle"
+                                                        >
+                                                            <input
+                                                                v-model="block.hasFrame"
+                                                                type="checkbox"
+                                                            />
+                                                            <span>
+                                                                <strong>Show background and border</strong>
+                                                            </span>
+                                                        </label>
+                                                        <label
+                                                            v-if="block.type === 'resource'"
+                                                            class="toggle-row compact-toggle"
+                                                        >
+                                                            <input
+                                                                v-model="block.opensInModal"
+                                                                type="checkbox"
+                                                            />
+                                                            <span>
+                                                                <strong>Open as modal</strong>
+                                                            </span>
+                                                        </label>
                                                     </div>
                                                 </article>
                                             </section>
@@ -536,7 +637,7 @@
                                                     v-for="block in page.blocks"
                                                     :key="block.id"
                                                     class="wizard-preview-block"
-                                                    :class="`wizard-preview-block-${block.type}`"
+                                                    :class="[`wizard-preview-block-${block.type}`, { 'wizard-preview-block-framed': block.hasFrame }]"
                                                 >
                                                     <h3
                                                         v-if="block.sectionTitle"
@@ -720,6 +821,10 @@
                                                         class="block-row"
                                                     >
                                                         <div class="block-tools">
+                                                            <div class="block-type-detail">
+                                                                <strong>{{ blockTypeTitle(block.type) }}</strong>
+                                                                <span>{{ blockTypeDescription(block.type) }}</span>
+                                                            </div>
                                                             <select
                                                                 v-model="block.type"
                                                                 class="text-input compact-select"
@@ -873,19 +978,31 @@
                                                                     class="text-input textarea-input compact-textarea"
                                                                     :placeholder="blockPlaceholder(block.type)"
                                                                 ></textarea>
-                                                                <label
-                                                                    v-if="block.type === 'resource'"
-                                                                    class="toggle-row compact-toggle"
-                                                                >
-                                                                    <input
-                                                                        v-model="block.opensInModal"
-                                                                        type="checkbox"
-                                                                    />
-                                                                    <span>
-                                                                        <strong>Open as modal</strong>
-                                                                    </span>
-                                                                </label>
                                                             </template>
+                                                            <label
+                                                                v-if="canFrameBlock(block.type)"
+                                                                class="toggle-row compact-toggle"
+                                                            >
+                                                                <input
+                                                                    v-model="block.hasFrame"
+                                                                    type="checkbox"
+                                                                />
+                                                                <span>
+                                                                    <strong>Show background and border</strong>
+                                                                </span>
+                                                            </label>
+                                                            <label
+                                                                v-if="block.type === 'resource'"
+                                                                class="toggle-row compact-toggle"
+                                                            >
+                                                                <input
+                                                                    v-model="block.opensInModal"
+                                                                    type="checkbox"
+                                                                />
+                                                                <span>
+                                                                    <strong>Open as modal</strong>
+                                                                </span>
+                                                            </label>
                                                         </div>
                                                     </article>
                                                 </section>
@@ -926,7 +1043,7 @@
                                                     v-for="block in subPage.blocks"
                                                     :key="block.id"
                                                     class="wizard-preview-block"
-                                                    :class="`wizard-preview-block-${block.type}`"
+                                                    :class="[`wizard-preview-block-${block.type}`, { 'wizard-preview-block-framed': block.hasFrame }]"
                                                 >
                                                     <h3
                                                         v-if="block.sectionTitle"
@@ -1197,6 +1314,21 @@
                         </article>
                     </aside>
                 </div>
+
+                <main
+                    v-else
+                    class="main-window templates-window"
+                >
+                    <section class="empty-state templates-coming-soon">
+                        <span class="template-coming-soon-icon">
+                            <PanelRight :size="28" />
+                        </span>
+                        <strong>Templates are coming soon</strong>
+                        <p>
+                            This window will hold reusable step-through starters, presets, and project patterns.
+                        </p>
+                    </section>
+                </main>
             </div>
         </section>
 
@@ -1332,6 +1464,7 @@ import {
     Plus,
     ExternalLink,
     Rocket,
+    Save,
     Search,
     Sparkles,
     TextQuote,
@@ -1365,6 +1498,7 @@ type WizardBlock = {
     previousAnswerKey: string;
     previousAnswerLabel: string;
     sectionTitle: string;
+    hasFrame: boolean;
 };
 
 type WizardQuestion = {
@@ -1423,6 +1557,7 @@ const pendingDashboardActionKey = 'stepthrough:pending-dashboard-action';
 const { loggedIn, user } = useUserSession();
 const showCreate = ref(false);
 const creating = ref(false);
+const activeDashboardTab = ref<'projects' | 'templates'>('projects');
 const publishingProjectId = ref<string | null>(null);
 const createError = ref('');
 const publishError = ref('');
@@ -1609,6 +1744,7 @@ function createBlock(type: BlockType): WizardBlock {
         previousAnswerKey: '',
         previousAnswerLabel: 'Previous answer',
         sectionTitle: '',
+        hasFrame: false,
     };
 }
 
@@ -1655,6 +1791,7 @@ function normalizeDraft(value: Partial<WizardDraft>): WizardDraft {
 function openCreateWizard() {
     createError.value = '';
     publishError.value = '';
+    activeDashboardTab.value = 'projects';
     editingProjectId.value = null;
     loadSavedCreateDraft();
     showCreate.value = true;
@@ -1667,12 +1804,21 @@ function closeWizard() {
 function openEditWizard(project: Project) {
     createError.value = '';
     publishError.value = '';
+    activeDashboardTab.value = 'projects';
     editingProjectId.value = project.id;
     selectedProjectId.value = project.id;
     hydrateDraftFromProject(project);
     wizardStep.value = 0;
     activeStepPageIndex.value = 0;
     showCreate.value = true;
+}
+
+function showDashboardTab(tab: 'projects' | 'templates') {
+    activeDashboardTab.value = tab;
+
+    if (tab === 'templates') {
+        closeWizard();
+    }
 }
 
 async function goToWizardStep(nextStep: number) {
@@ -1850,6 +1996,43 @@ function syncBlockType(block: WizardBlock) {
     block.questions = block.type === 'questions' ? block.questions.length ? block.questions : defaults.questions : [];
     block.previousAnswerKey = block.type === 'previous-answer' ? block.previousAnswerKey : '';
     block.previousAnswerLabel = block.type === 'previous-answer' ? block.previousAnswerLabel || defaults.previousAnswerLabel : '';
+    block.hasFrame = canFrameBlock(block.type) ? block.hasFrame : false;
+}
+
+function canFrameBlock(type: BlockType) {
+    return type === 'content' || type === 'questions' || type === 'notes' || type === 'image';
+}
+
+function blockTypeTitle(type: BlockType) {
+    const titles: Record<BlockType, string> = {
+        content: 'Content',
+        questions: 'Questions',
+        notes: 'User notes',
+        hero: 'Hero',
+        quote: 'Quote',
+        standout: 'Standout',
+        image: 'Image',
+        resource: 'Resource',
+        'previous-answer': 'Previous answer',
+    };
+
+    return titles[type];
+}
+
+function blockTypeDescription(type: BlockType) {
+    const descriptions: Record<BlockType, string> = {
+        content: 'Body text for instructions, context, or reflection.',
+        questions: 'Collect one or more answers from the user.',
+        notes: 'Give the user a larger freeform note area.',
+        hero: 'Large opening text with extra visual weight.',
+        quote: 'A quotation, prayer, or short emphasized line.',
+        standout: 'A highlighted callout for something important.',
+        image: 'A visual with an optional caption.',
+        resource: 'A link or reference item for the user.',
+        'previous-answer': 'Show an answer saved earlier in the step-through.',
+    };
+
+    return descriptions[type];
 }
 
 function blockPlaceholder(type: BlockType) {
@@ -1891,6 +2074,7 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
                 previousAnswerLabel: type === 'previous-answer' && typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : 'Previous answer',
                 sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
+                hasFrame: canFrameBlock(type) && Boolean(block.hasFrame),
             };
         });
 

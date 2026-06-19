@@ -167,6 +167,41 @@
             v-else
             class="live-experience"
         >
+            <Transition name="live-welcome-modal">
+                <div
+                    v-if="showWelcomeBackModal"
+                    class="live-welcome-backdrop"
+                >
+                    <section
+                        class="live-welcome-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="welcome-back-title"
+                    >
+                        <header class="live-welcome-modal-header">
+                            <span class="live-welcome-icon">
+                                <Sparkles :size="24" />
+                            </span>
+                            <div>
+                                <span class="detail-meta">Welcome back</span>
+                                <h2 id="welcome-back-title">{{ welcomeBackTitle }}</h2>
+                            </div>
+                        </header>
+                        <p>{{ welcomeBackPrompt }}</p>
+                        <footer class="live-welcome-modal-actions">
+                            <button
+                                class="primary-button"
+                                type="button"
+                                @click="dismissWelcomeBackModal"
+                            >
+                                Continue
+                                <ArrowRight :size="18" />
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            </Transition>
+
             <aside class="live-sidebar">
                 <button
                     class="live-brand"
@@ -199,14 +234,6 @@
             </aside>
 
             <article class="live-card">
-                <div
-                    v-if="blueprint.welcomeBack?.enabled && currentIndex === 0 && !isFinished"
-                    class="live-welcome"
-                >
-                    <Sparkles :size="18" />
-                    <span>{{ blueprint.welcomeBack.prompt }}</span>
-                </div>
-
                 <template v-if="isFinished">
                     <section class="live-complete">
                         <Check :size="28" />
@@ -227,7 +254,7 @@
                             v-for="block in currentScreen.blocks"
                             :key="block.id"
                             class="live-block"
-                            :class="`live-block-${block.type}`"
+                            :class="[`live-block-${block.type}`, { 'live-block-framed': block.hasFrame }]"
                         >
                             <component
                                 :is="currentScreen.kind === 'step' ? 'h2' : 'h3'"
@@ -364,6 +391,7 @@ type LiveBlock = {
     previousAnswerKey: string;
     previousAnswerLabel: string;
     sectionTitle: string;
+    hasFrame: boolean;
 };
 
 type LivePage = {
@@ -418,12 +446,19 @@ const instanceError = ref('');
 const saveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const saveRevision = ref(0);
 const lastAppliedSaveRevision = ref(0);
+const showWelcomeBackModal = ref(false);
+const dismissedWelcomeInstanceId = ref<string | null>(null);
 
 const { data: project, pending, error, refresh } = await useFetch<LiveProject>(`/api/live/${route.params.id}`);
 const blueprint = computed(() => parseBlueprint(project.value?.blueprint));
 const screens = computed(() => buildScreens(blueprint.value));
 const currentScreen = computed(() => screens.value[currentIndex.value] || screens.value[0] || createEmptyScreen());
 const instances = computed(() => project.value?.instances || []);
+const welcomeBackPrompt = computed(() => blueprint.value.welcomeBack?.prompt?.trim() || 'Take a moment before you continue.');
+const welcomeBackTitle = computed(() => currentScreen.value?.title || project.value?.title || 'Step-through');
+const shouldOfferWelcomeBackModal = computed(
+    () => Boolean(activeInstance.value && blueprint.value.welcomeBack?.enabled && !isFinished.value),
+);
 
 onMounted(() => {
     replayPendingLiveAction();
@@ -440,6 +475,21 @@ watch(currentIndex, () => {
         scheduleInstanceSave();
     }
 });
+
+watch(
+    shouldOfferWelcomeBackModal,
+    (shouldShow) => {
+        if (!shouldShow) {
+            showWelcomeBackModal.value = false;
+            return;
+        }
+
+        if (activeInstance.value?.id !== dismissedWelcomeInstanceId.value) {
+            showWelcomeBackModal.value = true;
+        }
+    },
+    { immediate: true },
+);
 
 watch(
     () => project.value?.viewerAuthenticated,
@@ -516,6 +566,7 @@ function createEmptyScreen(): LiveScreen {
                 previousAnswerKey: '',
                 previousAnswerLabel: '',
                 sectionTitle: '',
+                hasFrame: false,
             },
         ],
     };
@@ -538,7 +589,12 @@ function normalizeBlocks(value: unknown): LiveBlock[] {
             previousAnswerKey: typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
             previousAnswerLabel: typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : '',
             sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
+            hasFrame: canFrameBlock(normalizeBlockType(block.type)) && Boolean(block.hasFrame),
         }));
+}
+
+function canFrameBlock(type: BlockType) {
+    return type === 'content' || type === 'questions' || type === 'notes' || type === 'image';
 }
 
 function normalizeQuestions(value: unknown): LiveQuestion[] {
@@ -614,7 +670,7 @@ async function createInstance() {
 
         newInstanceTitle.value = '';
         await refresh();
-        openInstance(created);
+        openInstance(created, { showWelcomeBack: false });
     } catch (error: any) {
         if (redirectToLoginIfUnauthorized(error)) {
             storePendingLiveAction({
@@ -631,20 +687,24 @@ async function createInstance() {
     }
 }
 
-function openInstance(instance: WalkthroughInstance) {
+function openInstance(instance: WalkthroughInstance, options: { showWelcomeBack?: boolean } = {}) {
     activeInstance.value = instance;
+    dismissedWelcomeInstanceId.value = options.showWelcomeBack === false ? instance.id : null;
     isFinished.value = Boolean(instance.completed_at);
     currentIndex.value = Math.min(Math.max(0, instance.current_screen_index || 0), Math.max(0, screens.value.length - 1));
     Object.keys(answers).forEach((key) => {
         delete answers[key];
     });
     Object.assign(answers, parseAnswers(instance.answers));
+    showWelcomeBackModal.value = shouldOfferWelcomeBackModal.value;
 }
 
 async function returnHome() {
     await saveInstance();
     activeInstance.value = null;
     isFinished.value = false;
+    showWelcomeBackModal.value = false;
+    dismissedWelcomeInstanceId.value = null;
 }
 
 function parseAnswers(value: WalkthroughInstance['answers']) {
@@ -784,7 +844,7 @@ async function replayPendingLiveAction() {
             });
 
             await refresh();
-            openInstance(created);
+            openInstance(created, { showWelcomeBack: false });
             return;
         }
 
@@ -829,6 +889,11 @@ function updateSavedInstance(saved: WalkthroughInstance) {
         completed_at: saved.completed_at,
         updated_at: saved.updated_at,
     };
+}
+
+function dismissWelcomeBackModal() {
+    dismissedWelcomeInstanceId.value = activeInstance.value?.id || null;
+    showWelcomeBackModal.value = false;
 }
 
 function goForward() {
