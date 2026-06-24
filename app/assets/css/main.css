@@ -1021,6 +1021,73 @@ body {
     line-height: 1.55;
 }
 
+.formatting-hint {
+    color: var(--color-text-muted);
+    font-size: 1.2rem;
+    line-height: 1.45;
+}
+
+.formatted-content {
+    min-width: 0;
+}
+
+.formatted-content > * + * {
+    margin-top: 0.8em;
+}
+
+.formatted-content ul,
+.formatted-content ol {
+    padding-left: 1.5em;
+}
+
+.formatted-content ul > li {
+    list-style: disc;
+}
+
+.formatted-content ol > li {
+    list-style: decimal;
+}
+
+.formatted-content li + li {
+    margin-top: 0.25em;
+}
+
+.formatted-content blockquote {
+    border-left: 3px solid currentColor;
+    padding-left: 0.9em;
+    opacity: 0.85;
+}
+
+.formatted-content h3,
+.formatted-content h4,
+.formatted-content h5 {
+    font: inherit;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.formatted-content h3 {
+    font-size: 1.35em;
+}
+
+.formatted-content h4 {
+    font-size: 1.18em;
+}
+
+.formatted-content code {
+    border-radius: 0.25em;
+    background: rgba(89, 66, 16, 0.1);
+    padding: 0.08em 0.3em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.9em;
+}
+
+.formatted-content a {
+    color: var(--color-accent-2);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 .wizard-preview-block-framed {
     border: 1px solid rgba(89, 66, 16, 0.16);
     border-radius: 0.8rem;
@@ -1175,6 +1242,11 @@ body {
 
 .compact-textarea {
     min-height: 7rem;
+}
+
+.content-block-textarea {
+    height: 30rem;
+    min-height: 30rem;
 }
 
 .compact-select {

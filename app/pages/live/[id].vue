@@ -323,7 +323,10 @@
                                 </article>
                             </template>
                             <template v-else>
-                                <p>{{ block.content }}</p>
+                                <div
+                                    class="formatted-content"
+                                    v-html="renderFormattedContent(block.content)"
+                                ></div>
                             </template>
                         </section>
                     </div>
@@ -363,6 +366,7 @@
 <script setup lang="ts">
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, LayoutGrid, List, Play, Plus, Sparkles } from '@lucide/vue';
 import { LogIn } from '@lucide/vue';
+import { renderFormattedContent } from '~/utils/contentFormatting';
 
 type LiveProject = {
     id: string;

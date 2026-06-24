@@ -583,7 +583,7 @@
                                                                     @click="addQuestion(block)"
                                                                 >
                                                                     <Plus :size="18" />
-                                                                    Add question to block
+                                                                    Add question
                                                                 </button>
                                                             </div>
                                                         </template>
@@ -618,9 +618,15 @@
                                                             </div>
                                                         </template>
                                                         <template v-else>
+                                                            <span class="formatting-hint">
+                                                                Formatting: **bold**, *italic*, # heading, - bullet, 1. numbered,
+                                                                &gt; quote, [link](https://...)
+                                                            </span>
                                                             <textarea
                                                                 v-model="block.content"
                                                                 class="text-input textarea-input compact-textarea"
+                                                                :class="{ 'content-block-textarea': block.type === 'content' }"
+                                                                :rows="block.type === 'content' ? 12 : 3"
                                                                 :placeholder="blockPlaceholder(block.type)"
                                                             ></textarea>
                                                         </template>
@@ -729,7 +735,10 @@
                                                         </div>
                                                     </template>
                                                     <template v-else>
-                                                        <p>{{ block.content }}</p>
+                                                        <div
+                                                            class="formatted-content"
+                                                            v-html="renderFormattedContent(block.content)"
+                                                        ></div>
                                                     </template>
                                                 </section>
                                             </div>
@@ -978,7 +987,7 @@
                                                                         @click="addQuestion(block)"
                                                                     >
                                                                         <Plus :size="18" />
-                                                                        Add question to block
+                                                                        Add question
                                                                     </button>
                                                                 </div>
                                                             </template>
@@ -1013,9 +1022,15 @@
                                                                 </div>
                                                             </template>
                                                             <template v-else>
+                                                                <span class="formatting-hint">
+                                                                    Formatting: **bold**, *italic*, # heading, - bullet, 1. numbered,
+                                                                    &gt; quote, [link](https://...)
+                                                                </span>
                                                                 <textarea
                                                                     v-model="block.content"
                                                                     class="text-input textarea-input compact-textarea"
+                                                                    :class="{ 'content-block-textarea': block.type === 'content' }"
+                                                                    :rows="block.type === 'content' ? 12 : 3"
                                                                     :placeholder="blockPlaceholder(block.type)"
                                                                 ></textarea>
                                                             </template>
@@ -1135,7 +1150,10 @@
                                                         </div>
                                                     </template>
                                                     <template v-else>
-                                                        <p>{{ block.content }}</p>
+                                                        <div
+                                                            class="formatted-content"
+                                                            v-html="renderFormattedContent(block.content)"
+                                                        ></div>
                                                     </template>
                                                 </section>
                                             </div>
@@ -1483,6 +1501,7 @@
 </template>
 
 <script setup lang="ts">
+import { renderFormattedContent } from '~/utils/contentFormatting';
 import {
     ArrowLeft,
     ArrowRight,
@@ -1728,17 +1747,7 @@ function createInitialDraft(): WizardDraft {
                 ...createPage(0),
                 title: 'Opening step',
                 button: 'done',
-                blocks: [
-                    createBlock('content'),
-                    createQuestionBlock([
-                        createQuestion('What do you want to focus on?', 'Write a short answer'),
-                        createQuestion('What should you remember from this step?', 'Add a note', 'textarea'),
-                        createQuestion('What is one next action?', 'Describe the next action'),
-                    ]),
-                    createBlock('content'),
-                    createBlock('notes'),
-                ],
-                subPages: [{ ...createSubPage(0), blocks: [createBlock('content'), createQuestionBlock([createQuestion('What stood out?', 'Save your answer')])] }],
+                blocks: [createBlock('content')],
             },
         ],
     };
@@ -1753,8 +1762,8 @@ function createPage(index: number): WizardPage {
         id: createId(),
         title: `Step ${index + 1}`,
         button: 'done',
-        blocks: [],
-        subPages: [],
+        blocks: [createBlock('content')],
+        subPages: [createSubPage(0)],
     };
 }
 
@@ -1764,7 +1773,7 @@ function createSubPage(index: number): WizardSubPage {
         title: `Interaction ${index + 1}`,
         question: index === 1 ? 'Look back at the top 3 things from the previous step.' : 'What do you want to remember?',
         autofillFromPrevious: false,
-        blocks: [createQuestionBlock([createQuestion('What do you want to save from this page?', 'Type your answer')])],
+        blocks: [createBlock('content')],
     };
 }
 
@@ -1779,7 +1788,7 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
 
 function createBlock(type: BlockType): WizardBlock {
     const contentByType: Record<BlockType, string> = {
-        content: 'Write flexible body content for this page.',
+        content: '',
         questions: '',
         notes: 'Add any longer notes you want to save here.',
         hero: 'Begin with a clear intention for this step-through.',
@@ -1984,15 +1993,7 @@ function resetDraft() {
 }
 
 function addPage() {
-    draft.pages.push({
-        ...createPage(draft.pages.length),
-        subPages: [{ ...createSubPage(0), blocks: [createBlock('content')] }],
-        blocks: [
-            createBlock('content'),
-            createQuestionBlock([createQuestion('What should this step collect?', 'Answer'), createQuestion('What should carry forward?', 'Answer')]),
-            createBlock('image'),
-        ],
-    });
+    draft.pages.push(createPage(draft.pages.length));
     syncStepButtons();
 }
 
@@ -2094,7 +2095,7 @@ function blockTypeDescription(type: BlockType) {
 
 function blockPlaceholder(type: BlockType) {
     const placeholders: Record<BlockType, string> = {
-        content: 'Body content for this page or sub page',
+        content: 'Write flexible body content for this page.',
         questions: 'Question block',
         notes: 'Prompt for user notes',
         hero: 'Large opening text for the page',
