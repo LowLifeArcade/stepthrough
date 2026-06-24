@@ -41,16 +41,10 @@ beforeEach(async () => {
 
 describe('deleteProjectRecords', () => {
     it('soft-deletes a project and all of its walkthrough instances in one operation', async () => {
-        const deleted = await deleteProjectRecords(env.STEPTHROUGH, {
+        await deleteProjectRecords(env.STEPTHROUGH, {
             projectId,
             userId,
             deletedAt,
-        });
-
-        expect(deleted).toEqual({
-            id: projectId,
-            title: 'Test project',
-            status: 'active',
         });
 
         const project = await env.STEPTHROUGH.prepare(`

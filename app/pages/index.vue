@@ -406,14 +406,38 @@
                                             class="page-builder"
                                         >
                                             <header class="page-builder-header">
-                                                <div>
+                                                <div class="page-builder-title">
                                                     <span class="detail-meta">Step {{ index + 1 }}</span>
                                                     <strong>{{ page.title || 'Untitled step' }}</strong>
                                                     <p class="project-meta">{{ page.blocks.length }} block{{ page.blocks.length === 1 ? '' : 's' }}</p>
                                                 </div>
-                                                <div class="step-progress-chip">
-                                                    <span>Progress button</span>
-                                                    <strong>{{ formatButtonLabel(page.button) }}</strong>
+                                                <div class="page-builder-header-actions">
+                                                    <div class="mini-actions">
+                                                        <button
+                                                            class="icon-button"
+                                                            type="button"
+                                                            title="Move step up"
+                                                            aria-label="Move step up"
+                                                            :disabled="index === 0"
+                                                            @click="movePage(index, -1)"
+                                                        >
+                                                            <ArrowUp :size="18" />
+                                                        </button>
+                                                        <button
+                                                            class="icon-button"
+                                                            type="button"
+                                                            title="Move step down"
+                                                            aria-label="Move step down"
+                                                            :disabled="index === draft.pages.length - 1"
+                                                            @click="movePage(index, 1)"
+                                                        >
+                                                            <ArrowDown :size="18" />
+                                                        </button>
+                                                    </div>
+                                                    <div class="step-progress-chip">
+                                                        <span>Progress button</span>
+                                                        <strong>{{ formatButtonLabel(page.button) }}</strong>
+                                                    </div>
                                                 </div>
                                             </header>
                                             <div class="step-main-grid">
@@ -2138,6 +2162,23 @@ function removePage(index: number) {
     syncStepButtons();
 }
 
+function movePage(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+
+    if (nextIndex < 0 || nextIndex >= draft.pages.length) {
+        return;
+    }
+
+    const activePageId = activeStepPage.value?.id;
+    const [page] = draft.pages.splice(index, 1);
+    draft.pages.splice(nextIndex, 0, page);
+    syncStepButtons();
+
+    if (activePageId) {
+        activeStepPageIndex.value = draft.pages.findIndex((candidate) => candidate.id === activePageId);
+    }
+}
+
 function addSubPage(page: WizardPage) {
     page.subPages.push({
         ...createSubPage(page.subPages.length),
@@ -2544,7 +2585,7 @@ async function deleteProject() {
     try {
         await $fetch<Project>(`/api/projects/${projectId}`, {
             method: 'DELETE',
-            body: {
+            query: {
                 confirmationTitle: deleteProjectConfirmation.value,
             },
         });

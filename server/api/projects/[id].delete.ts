@@ -9,8 +9,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const id = getRouterParam(event, 'id');
-    const body = await readBody(event);
-    const confirmationTitle = String(body?.confirmationTitle || '').trim();
+    const confirmationTitle = String(getQuery(event).confirmationTitle || '').trim();
 
     if (!id) {
         throw createError({ statusCode: 422, message: 'Project id is required' });
@@ -44,10 +43,11 @@ export default defineEventHandler(async (event) => {
     const d1 = await db.getInstance() as D1Database;
 
     try {
-        return await deleteProjectRecords(d1, {
+        await deleteProjectRecords(d1, {
             projectId: id,
             userId: user.uid,
         });
+        return project;
     } catch (error) {
         console.error({ error });
         throw createError({ statusCode: 400, message: 'There was a problem deleting the project' });

@@ -1,11 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
 
-export type DeletedProject = {
-    id: string;
-    title: string;
-    status: string;
-};
-
 type DeleteProjectRecordsOptions = {
     projectId: string;
     userId: string;
@@ -15,7 +9,7 @@ type DeleteProjectRecordsOptions = {
 export async function deleteProjectRecords(
     d1: D1Database,
     { projectId, userId, deletedAt = Math.floor(Date.now() / 1000) }: DeleteProjectRecordsOptions,
-): Promise<DeletedProject> {
+): Promise<void> {
     const [, deleted] = await d1.batch([
         d1.prepare(`
             UPDATE walkthrough_instances
@@ -38,13 +32,10 @@ export async function deleteProjectRecords(
             WHERE id = ?
                 AND user_id = ?
                 AND deleted_at IS NULL
-            RETURNING id, title, status
         `).bind(deletedAt, deletedAt, projectId, userId),
     ]);
 
-    if (!deleted.success || deleted.results.length !== 1) {
+    if (!deleted.success || deleted.meta.changes !== 1) {
         throw new Error('Project was not deleted');
     }
-
-    return deleted.results[0] as DeletedProject;
 }
