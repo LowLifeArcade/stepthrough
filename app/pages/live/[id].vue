@@ -34,7 +34,7 @@
                     StepThrough
                 </NuxtLink>
                 <div class="live-title-block">
-                    <span class="detail-meta">Specific step-through list</span>
+                    <!-- <span class="detail-meta">Specific step-through list</span> -->
                     <h1>{{ project.title }}</h1>
                     <p>{{ project.description }}</p>
                 </div>
@@ -98,7 +98,7 @@
                             :class="{ active: viewMode === 'tiles' }"
                             title="Tile view"
                             aria-label="Tile view"
-                            @click="viewMode = 'tiles'"
+                            @click="setViewMode('tiles')"
                         >
                             <LayoutGrid :size="18" />
                         </button>
@@ -107,7 +107,7 @@
                             :class="{ active: viewMode === 'list' }"
                             title="List view"
                             aria-label="List view"
-                            @click="viewMode = 'list'"
+                            @click="setViewMode('list')"
                         >
                             <List :size="18" />
                         </button>
@@ -433,6 +433,7 @@ type PendingLiveAction =
       };
 
 const pendingLiveActionKey = 'stepthrough:pending-live-action';
+const liveViewModeStorageKey = 'stepthrough:live-view-mode';
 
 const route = useRoute();
 const viewMode = ref<'tiles' | 'list'>('tiles');
@@ -461,8 +462,22 @@ const shouldOfferWelcomeBackModal = computed(
 );
 
 onMounted(() => {
+    restoreViewMode();
     replayPendingLiveAction();
 });
+
+function setViewMode(mode: 'tiles' | 'list') {
+    viewMode.value = mode;
+    localStorage.setItem(liveViewModeStorageKey, mode);
+}
+
+function restoreViewMode() {
+    const savedViewMode = localStorage.getItem(liveViewModeStorageKey);
+
+    if (savedViewMode === 'tiles' || savedViewMode === 'list') {
+        viewMode.value = savedViewMode;
+    }
+}
 
 watch(screens, (value) => {
     if (currentIndex.value > value.length - 1) {
