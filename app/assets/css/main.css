@@ -372,7 +372,7 @@ body {
 
 .sidebar {
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: 2.4rem;
     border-right: 1px solid var(--color-border);
     background: var(--color-bg-2);
@@ -419,6 +419,84 @@ body {
     background: var(--color-surface);
     color: var(--color-text);
     box-shadow: 0 1px 0 rgba(17, 17, 17, 0.04);
+}
+
+.active-stepthroughs {
+    min-height: 0;
+}
+
+.sidebar-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sidebar-section-heading h2 {
+    font-size: 1.5rem;
+}
+
+.sidebar-count {
+    display: grid;
+    min-width: 2.4rem;
+    height: 2.4rem;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.active-stepthrough-list {
+    display: grid;
+    max-height: 100%;
+    gap: 0.6rem;
+    overflow-y: auto;
+}
+
+.active-stepthrough-link {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.8rem;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 0.7rem;
+    background: var(--color-surface);
+    padding: 1rem;
+    transition:
+        border-color 160ms ease,
+        transform 160ms ease;
+}
+
+.active-stepthrough-link:hover {
+    border-color: var(--color-border-2);
+    transform: translateX(0.2rem);
+}
+
+.active-stepthrough-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.2rem;
+}
+
+.active-stepthrough-copy strong,
+.active-stepthrough-copy span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.active-stepthrough-copy strong {
+    font-size: 1.4rem;
+}
+
+.active-stepthrough-copy span,
+.active-stepthrough-empty {
+    color: var(--color-text-muted);
+    font-size: 1.2rem;
+    line-height: 1.4;
 }
 
 .sidebar-footer {

@@ -150,6 +150,46 @@
                     </button>
                 </nav>
 
+                <section
+                    class="active-stepthroughs"
+                    aria-labelledby="active-stepthroughs-title"
+                >
+                    <div class="sidebar-section-heading">
+                        <div>
+                            <p class="detail-meta">In progress</p>
+                            <h2 id="active-stepthroughs-title">Active step-throughs</h2>
+                        </div>
+                        <span class="sidebar-count">{{ openStepthroughs.length }}</span>
+                    </div>
+
+                    <div
+                        v-if="openStepthroughs.length"
+                        class="active-stepthrough-list"
+                    >
+                        <NuxtLink
+                            v-for="stepthrough in openStepthroughs"
+                            :key="stepthrough.project_id"
+                            class="active-stepthrough-link"
+                            :to="`/live/${stepthrough.project_id}`"
+                        >
+                            <span class="active-stepthrough-copy">
+                                <strong>{{ stepthrough.project_title }}</strong>
+                                <span>
+                                    {{ stepthrough.open_instance_count }}
+                                    open walkthrough{{ stepthrough.open_instance_count === 1 ? '' : 's' }}
+                                </span>
+                            </span>
+                            <ArrowRight :size="16" />
+                        </NuxtLink>
+                    </div>
+                    <p
+                        v-else-if="!openStepthroughsPending"
+                        class="active-stepthrough-empty"
+                    >
+                        Your open step-throughs will appear here.
+                    </p>
+                </section>
+
                 <div class="sidebar-footer">
                     <div class="user-chip">
                         <img
@@ -1483,6 +1523,13 @@ type Project = {
     updated_at: number;
 };
 
+type OpenStepthrough = {
+    project_id: string;
+    project_title: string;
+    open_instance_count: number;
+    updated_at: number;
+};
+
 type ProgressButton = 'start' | 'next' | 'done';
 type BlockType = 'content' | 'questions' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
 type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
@@ -1598,8 +1645,17 @@ const { data, pending, refresh } = await useFetch<Project[]>('/api/projects', {
     default: () => [],
     immediate: loggedIn.value,
 });
+const {
+    data: openStepthroughData,
+    pending: openStepthroughsPending,
+    refresh: refreshOpenStepthroughs,
+} = await useFetch<OpenStepthrough[]>('/api/walkthrough-instances/open', {
+    default: () => [],
+    immediate: loggedIn.value,
+});
 
 const projects = computed(() => data.value || []);
+const openStepthroughs = computed(() => openStepthroughData.value || []);
 const selectedProject = computed(() => {
     if (!projects.value.length) {
         return null;
@@ -1649,6 +1705,7 @@ watch(
 
 watch(loggedIn, (value) => {
     if (value) {
+        refreshOpenStepthroughs();
         replayPendingDashboardAction();
     }
 });
@@ -2257,7 +2314,7 @@ async function onSaveProject() {
         selectedProjectId.value = saved.id;
         editingProjectId.value = null;
         resetDraft();
-        await refresh();
+        await refreshDashboardData();
     } catch (error: any) {
         if (redirectToLoginIfUnauthorized(error)) {
             storePendingDashboardAction({
@@ -2287,7 +2344,7 @@ async function publishProject(project: Project) {
 
         selectedProjectId.value = published.id;
         publishProjectTarget.value = null;
-        await refresh();
+        await refreshDashboardData();
     } catch (error: any) {
         if (redirectToLoginIfUnauthorized(error)) {
             storePendingDashboardAction({
@@ -2327,7 +2384,7 @@ async function deleteProject() {
             selectedProjectId.value = null;
         }
 
-        await refresh();
+        await refreshDashboardData();
 
         if (!selectedProjectId.value && projects.value.length) {
             selectedProjectId.value = projects.value[0].id;
@@ -2404,7 +2461,7 @@ async function replayPendingDashboardAction() {
             editingProjectId.value = null;
             showCreate.value = false;
             resetDraft();
-            await refresh();
+            await refreshDashboardData();
             return;
         }
 
@@ -2414,7 +2471,7 @@ async function replayPendingDashboardAction() {
             });
 
             selectedProjectId.value = published.id;
-            await refresh();
+            await refreshDashboardData();
             return;
         }
 
@@ -2427,7 +2484,7 @@ async function replayPendingDashboardAction() {
             });
 
             selectedProjectId.value = null;
-            await refresh();
+            await refreshDashboardData();
         }
     } catch (error: any) {
         if (error?.data?.message) {
@@ -2449,6 +2506,10 @@ function redirectToLoginIfUnauthorized(error: any) {
 
     navigateTo(loginUrl(), { external: true });
     return true;
+}
+
+async function refreshDashboardData() {
+    await Promise.all([refresh(), refreshOpenStepthroughs()]);
 }
 
 function loginUrl() {
