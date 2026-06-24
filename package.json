@@ -6,9 +6,10 @@
         "build": "nuxt build",
         "dev": "NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=dev nuxt dev",
         "generate": "nuxt generate",
+        "test": "vitest run",
         "preview": "npm run build && wrangler dev --config wrangler.jsonc --env dev",
         "postinstall": "nuxt prepare",
-        "deploy": "npm run build && wrangler deploy --config wrangler.jsonc --env=\"\"",
+        "deploy": "npm test && npm run build && wrangler deploy --config wrangler.jsonc --env=\"\"",
         "cf-typegen": "wrangler types",
         "db:create": "wrangler d1 create stepthrough-db",
         "db:list": "wrangler d1 list",
@@ -38,10 +39,12 @@
         "vue-router": "^4.6.4"
     },
     "devDependencies": {
+        "@cloudflare/vitest-pool-workers": "^0.16.19",
         "@cloudflare/workers-types": "^4.20260317.1",
         "@types/node": "^25.4.0",
         "nitro-cloudflare-dev": "^0.2.2",
         "nitropack": "^2.13.1",
+        "vitest": "^4.1.9",
         "wrangler": "^4.72.0"
     }
 }

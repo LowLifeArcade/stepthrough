@@ -306,6 +306,22 @@
                                     />
                                 </label>
                             </template>
+                            <template v-else-if="block.type === 'multi-answer'">
+                                <p v-if="block.content">{{ block.content }}</p>
+                                <label
+                                    v-for="(answerField, answerIndex) in block.answerFields"
+                                    :key="answerField.id"
+                                    class="live-field"
+                                >
+                                    <input
+                                        v-model="answers[answerKey(currentScreen.key, answerField.id)]"
+                                        type="text"
+                                        :aria-label="`Answer ${answerIndex + 1}`"
+                                        :placeholder="answerField.placeholder || `Answer ${answerIndex + 1}`"
+                                        @input="scheduleInstanceSave"
+                                    />
+                                </label>
+                            </template>
                             <template v-else-if="block.type === 'notes'">
                                 <label class="live-field">
                                     <span>{{ block.content || 'Notes' }}</span>
@@ -397,6 +413,7 @@ type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
 type BlockType =
     | 'content'
     | 'questions'
+    | 'multi-answer'
     | 'notes'
     | 'hero'
     | 'quote'
@@ -412,6 +429,11 @@ type LiveQuestion = {
     inputType: QuestionInputType;
 };
 
+type LiveAnswerField = {
+    id: string;
+    placeholder: string;
+};
+
 type LiveBlock = {
     id: string;
     type: BlockType;
@@ -419,6 +441,7 @@ type LiveBlock = {
     imageUrl: string;
     caption: string;
     questions: LiveQuestion[];
+    answerFields: LiveAnswerField[];
     previousAnswerKey: string;
     previousAnswerLabel: string;
     sectionTitle: string;
@@ -622,6 +645,7 @@ function createEmptyScreen(): LiveScreen {
                 imageUrl: '',
                 caption: '',
                 questions: [],
+                answerFields: [],
                 previousAnswerKey: '',
                 previousAnswerLabel: '',
                 sectionTitle: '',
@@ -645,6 +669,7 @@ function normalizeBlocks(value: unknown): LiveBlock[] {
             imageUrl: typeof block.imageUrl === 'string' ? block.imageUrl : '',
             caption: typeof block.caption === 'string' ? block.caption : '',
             questions: normalizeQuestions(block.questions),
+            answerFields: normalizeAnswerFields(block.answerFields),
             previousAnswerKey: typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
             previousAnswerLabel: typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : '',
             sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
@@ -653,7 +678,7 @@ function normalizeBlocks(value: unknown): LiveBlock[] {
 }
 
 function canFrameBlock(type: BlockType) {
-    return type === 'content' || type === 'questions' || type === 'notes' || type === 'image';
+    return type === 'content' || type === 'questions' || type === 'multi-answer' || type === 'notes' || type === 'image';
 }
 
 function normalizeQuestions(value: unknown): LiveQuestion[] {
@@ -671,10 +696,24 @@ function normalizeQuestions(value: unknown): LiveQuestion[] {
         }));
 }
 
+function normalizeAnswerFields(value: unknown): LiveAnswerField[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .filter((field): field is Partial<LiveAnswerField> => Boolean(field && typeof field === 'object'))
+        .map((field, index) => ({
+            id: typeof field.id === 'string' ? field.id : `answer-${index}`,
+            placeholder: typeof field.placeholder === 'string' ? field.placeholder : `Answer ${index + 1}`,
+        }));
+}
+
 function normalizeBlockType(value: unknown): BlockType {
     if (
         value === 'content' ||
         value === 'questions' ||
+        value === 'multi-answer' ||
         value === 'notes' ||
         value === 'hero' ||
         value === 'quote' ||

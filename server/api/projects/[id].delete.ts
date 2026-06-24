@@ -1,3 +1,6 @@
+import type { D1Database } from '@cloudflare/workers-types';
+import { deleteProjectRecords } from '~~/server/utils/deleteProject';
+
 export default defineEventHandler(async (event) => {
     const { user } = await getUserSession(event);
 
@@ -38,33 +41,15 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 422, message: 'Type the project name exactly to delete this live project' });
     }
 
-    const deleted = await db.sql`
-        UPDATE projects
-        SET deleted_at = unixepoch(),
-            updated_at = unixepoch()
-        WHERE id = ${id}
-            AND user_id = ${user.uid}
-            AND deleted_at IS NULL
-        RETURNING id, title, status
-    `;
+    const d1 = await db.getInstance() as D1Database;
 
-    if (!deleted.success) {
-        console.error({ error: deleted.error });
+    try {
+        return await deleteProjectRecords(d1, {
+            projectId: id,
+            userId: user.uid,
+        });
+    } catch (error) {
+        console.error({ error });
         throw createError({ statusCode: 400, message: 'There was a problem deleting the project' });
     }
-
-    const deletedInstances = await db.sql`
-        UPDATE walkthrough_instances
-        SET deleted_at = unixepoch(),
-            updated_at = unixepoch()
-        WHERE project_id = ${id}
-            AND deleted_at IS NULL
-    `;
-
-    if (!deletedInstances.success) {
-        console.error({ error: deletedInstances.error });
-        throw createError({ statusCode: 400, message: 'The project was deleted, but its walkthrough instances could not be deleted' });
-    }
-
-    return deleted.rows[0];
 });

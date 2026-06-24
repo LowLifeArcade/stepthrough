@@ -477,6 +477,7 @@
                                                         >
                                                             <option value="content">Content</option>
                                                             <option value="questions">Questions</option>
+                                                            <option value="multi-answer">Multi answer</option>
                                                             <option value="notes">User notes</option>
                                                             <option value="hero">Hero</option>
                                                             <option value="quote">Quote</option>
@@ -584,6 +585,48 @@
                                                                 >
                                                                     <Plus :size="18" />
                                                                     Add question
+                                                                </button>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="block.type === 'multi-answer'">
+                                                            <div class="multi-answer-block-fields">
+                                                                <label class="field">
+                                                                    <span class="field-label">Description</span>
+                                                                    <textarea
+                                                                        v-model="block.content"
+                                                                        class="text-input textarea-input compact-textarea"
+                                                                        placeholder="Name your top 5 favorite foods."
+                                                                    ></textarea>
+                                                                </label>
+                                                                <article
+                                                                    v-for="(answerField, answerIndex) in block.answerFields"
+                                                                    :key="answerField.id"
+                                                                    class="answer-field-row"
+                                                                >
+                                                                    <input
+                                                                        v-model="answerField.placeholder"
+                                                                        class="text-input"
+                                                                        type="text"
+                                                                        :placeholder="`Answer ${answerIndex + 1} placeholder`"
+                                                                    />
+                                                                    <button
+                                                                        class="icon-button"
+                                                                        type="button"
+                                                                        title="Remove answer field"
+                                                                        aria-label="Remove answer field"
+                                                                        :disabled="block.answerFields.length === 1"
+                                                                        @click="removeAnswerField(block, answerIndex)"
+                                                                    >
+                                                                        <Trash2 :size="18" />
+                                                                    </button>
+                                                                </article>
+                                                                <button
+                                                                    class="secondary-button add-row-button"
+                                                                    type="button"
+                                                                    @click="addAnswerField(block)"
+                                                                >
+                                                                    <Plus :size="18" />
+                                                                    Add answer field
                                                                 </button>
                                                             </div>
                                                         </template>
@@ -716,6 +759,21 @@
                                                                 disabled
                                                                 :type="question.inputType"
                                                                 :placeholder="question.placeholder"
+                                                            />
+                                                        </label>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'multi-answer'">
+                                                        <p v-if="block.content">{{ block.content }}</p>
+                                                        <label
+                                                            v-for="(answerField, answerIndex) in block.answerFields"
+                                                            :key="answerField.id"
+                                                            class="wizard-preview-field"
+                                                        >
+                                                            <input
+                                                                disabled
+                                                                type="text"
+                                                                :aria-label="`Answer ${answerIndex + 1}`"
+                                                                :placeholder="answerField.placeholder || `Answer ${answerIndex + 1}`"
                                                             />
                                                         </label>
                                                     </template>
@@ -881,6 +939,7 @@
                                                             >
                                                                 <option value="content">Content</option>
                                                                 <option value="questions">Questions</option>
+                                                                <option value="multi-answer">Multi answer</option>
                                                                 <option value="notes">User notes</option>
                                                                 <option value="hero">Hero</option>
                                                                 <option value="quote">Quote</option>
@@ -988,6 +1047,48 @@
                                                                     >
                                                                         <Plus :size="18" />
                                                                         Add question
+                                                                    </button>
+                                                                </div>
+                                                            </template>
+                                                            <template v-else-if="block.type === 'multi-answer'">
+                                                                <div class="multi-answer-block-fields">
+                                                                    <label class="field">
+                                                                        <span class="field-label">Description</span>
+                                                                        <textarea
+                                                                            v-model="block.content"
+                                                                            class="text-input textarea-input compact-textarea"
+                                                                            placeholder="Name your top 5 favorite foods."
+                                                                        ></textarea>
+                                                                    </label>
+                                                                    <article
+                                                                        v-for="(answerField, answerIndex) in block.answerFields"
+                                                                        :key="answerField.id"
+                                                                        class="answer-field-row"
+                                                                    >
+                                                                        <input
+                                                                            v-model="answerField.placeholder"
+                                                                            class="text-input"
+                                                                            type="text"
+                                                                            :placeholder="`Answer ${answerIndex + 1} placeholder`"
+                                                                        />
+                                                                        <button
+                                                                            class="icon-button"
+                                                                            type="button"
+                                                                            title="Remove answer field"
+                                                                            aria-label="Remove answer field"
+                                                                            :disabled="block.answerFields.length === 1"
+                                                                            @click="removeAnswerField(block, answerIndex)"
+                                                                        >
+                                                                            <Trash2 :size="18" />
+                                                                        </button>
+                                                                    </article>
+                                                                    <button
+                                                                        class="secondary-button add-row-button"
+                                                                        type="button"
+                                                                        @click="addAnswerField(block)"
+                                                                    >
+                                                                        <Plus :size="18" />
+                                                                        Add answer field
                                                                     </button>
                                                                 </div>
                                                             </template>
@@ -1131,6 +1232,21 @@
                                                                 disabled
                                                                 :type="question.inputType"
                                                                 :placeholder="question.placeholder"
+                                                            />
+                                                        </label>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'multi-answer'">
+                                                        <p v-if="block.content">{{ block.content }}</p>
+                                                        <label
+                                                            v-for="(answerField, answerIndex) in block.answerFields"
+                                                            :key="answerField.id"
+                                                            class="wizard-preview-field"
+                                                        >
+                                                            <input
+                                                                disabled
+                                                                type="text"
+                                                                :aria-label="`Answer ${answerIndex + 1}`"
+                                                                :placeholder="answerField.placeholder || `Answer ${answerIndex + 1}`"
                                                             />
                                                         </label>
                                                     </template>
@@ -1550,7 +1666,7 @@ type OpenStepthrough = {
 };
 
 type ProgressButton = 'start' | 'next' | 'done';
-type BlockType = 'content' | 'questions' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
+type BlockType = 'content' | 'questions' | 'multi-answer' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
 type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
 
 type WizardBlock = {
@@ -1561,6 +1677,7 @@ type WizardBlock = {
     caption: string;
     opensInModal: boolean;
     questions: WizardQuestion[];
+    answerFields: MultiAnswerField[];
     previousAnswerKey: string;
     previousAnswerLabel: string;
     sectionTitle: string;
@@ -1572,6 +1689,11 @@ type WizardQuestion = {
     label: string;
     placeholder: string;
     inputType: QuestionInputType;
+};
+
+type MultiAnswerField = {
+    id: string;
+    placeholder: string;
 };
 
 type WizardSubPage = {
@@ -1649,6 +1771,7 @@ const wizardSteps = [
 const blockTypes = [
     { value: 'content' as const, label: 'content block', icon: Type },
     { value: 'questions' as const, label: 'question block', icon: ListChecks },
+    { value: 'multi-answer' as const, label: 'multi answer block', icon: ListChecks },
     { value: 'notes' as const, label: 'user notes block', icon: NotebookPen },
     { value: 'hero' as const, label: 'hero block', icon: Heading1 },
     { value: 'quote' as const, label: 'quote block', icon: TextQuote },
@@ -1786,10 +1909,18 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
     };
 }
 
+function createAnswerField(placeholder = 'Answer 1') {
+    return {
+        id: createId(),
+        placeholder,
+    };
+}
+
 function createBlock(type: BlockType): WizardBlock {
     const contentByType: Record<BlockType, string> = {
         content: '',
         questions: '',
+        'multi-answer': 'Name your top 5 favorite foods.',
         notes: 'Add any longer notes you want to save here.',
         hero: 'Begin with a clear intention for this step-through.',
         quote: 'A short quote or prayer can stand out here.',
@@ -1807,6 +1938,7 @@ function createBlock(type: BlockType): WizardBlock {
         caption: type === 'image' ? 'A visual reference for this step.' : '',
         opensInModal: type === 'resource',
         questions: type === 'questions' ? [createQuestion()] : [],
+        answerFields: type === 'multi-answer' ? [createAnswerField()] : [],
         previousAnswerKey: '',
         previousAnswerLabel: 'Previous answer',
         sectionTitle: '',
@@ -2025,6 +2157,18 @@ function removeQuestion(target: WizardBlock, index: number) {
     target.questions.splice(index, 1);
 }
 
+function addAnswerField(target: WizardBlock) {
+    target.answerFields.push(createAnswerField(`Answer ${target.answerFields.length + 1}`));
+}
+
+function removeAnswerField(target: WizardBlock, index: number) {
+    if (target.answerFields.length === 1) {
+        return;
+    }
+
+    target.answerFields.splice(index, 1);
+}
+
 function addBlock(target: WizardPage | WizardSubPage, type: BlockType) {
     target.blocks.push(createBlock(type));
 }
@@ -2052,19 +2196,21 @@ function syncBlockType(block: WizardBlock) {
     block.caption = block.type === 'image' ? block.caption || defaults.caption : '';
     block.opensInModal = block.type === 'resource' ? block.opensInModal : false;
     block.questions = block.type === 'questions' ? block.questions.length ? block.questions : defaults.questions : [];
+    block.answerFields = block.type === 'multi-answer' ? block.answerFields.length ? block.answerFields : defaults.answerFields : [];
     block.previousAnswerKey = block.type === 'previous-answer' ? block.previousAnswerKey : '';
     block.previousAnswerLabel = block.type === 'previous-answer' ? block.previousAnswerLabel || defaults.previousAnswerLabel : '';
     block.hasFrame = canFrameBlock(block.type) ? block.hasFrame : false;
 }
 
 function canFrameBlock(type: BlockType) {
-    return type === 'content' || type === 'questions' || type === 'notes' || type === 'image';
+    return type === 'content' || type === 'questions' || type === 'multi-answer' || type === 'notes' || type === 'image';
 }
 
 function blockTypeTitle(type: BlockType) {
     const titles: Record<BlockType, string> = {
         content: 'Content',
         questions: 'Questions',
+        'multi-answer': 'Multi answer',
         notes: 'User notes',
         hero: 'Hero',
         quote: 'Quote',
@@ -2081,6 +2227,7 @@ function blockTypeDescription(type: BlockType) {
     const descriptions: Record<BlockType, string> = {
         content: 'Body text for instructions, context, or reflection.',
         questions: 'Collect one or more answers from the user.',
+        'multi-answer': 'Ask one prompt and collect a list of separate answers.',
         notes: 'Give the user a larger freeform note area.',
         hero: 'Large opening text with extra visual weight.',
         quote: 'A quotation, prayer, or short emphasized line.',
@@ -2097,6 +2244,7 @@ function blockPlaceholder(type: BlockType) {
     const placeholders: Record<BlockType, string> = {
         content: 'Write flexible body content for this page.',
         questions: 'Question block',
+        'multi-answer': 'Name your top 5 favorite foods.',
         notes: 'Prompt for user notes',
         hero: 'Large opening text for the page',
         quote: 'Quote, prayer, or memorable line',
@@ -2119,6 +2267,7 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
         .map((block) => {
             const type = normalizeBlockType(block.type);
             const questions = normalizeQuestions(block.questions);
+            const answerFields = normalizeAnswerFields(block.answerFields);
 
             return {
                 ...createBlock(type),
@@ -2129,6 +2278,7 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 caption: typeof block.caption === 'string' ? block.caption : '',
                 opensInModal: Boolean(block.opensInModal),
                 questions: type === 'questions' ? questions.length ? questions : [createQuestion()] : [],
+                answerFields: type === 'multi-answer' ? answerFields.length ? answerFields : [createAnswerField()] : [],
                 previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
                 previousAnswerLabel: type === 'previous-answer' && typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : 'Previous answer',
                 sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
@@ -2162,10 +2312,24 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
     return [];
 }
 
+function normalizeAnswerFields(value: unknown): MultiAnswerField[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .filter((field): field is Partial<MultiAnswerField> => Boolean(field && typeof field === 'object'))
+        .map((field, index) => ({
+            id: typeof field.id === 'string' ? field.id : createId(),
+            placeholder: typeof field.placeholder === 'string' ? field.placeholder : `Answer ${index + 1}`,
+        }));
+}
+
 function normalizeBlockType(value: unknown): BlockType {
     if (
         value === 'content' ||
         value === 'questions' ||
+        value === 'multi-answer' ||
         value === 'notes' ||
         value === 'hero' ||
         value === 'quote' ||
@@ -2239,6 +2403,13 @@ function collectBlockAnswerOptions(block: WizardBlock, screenKey: string, screen
         return block.questions.map((question) => ({
             key: `${screenKey}:${question.id}`,
             label: `${screenLabel} - ${question.label || 'Question'}`,
+        }));
+    }
+
+    if (block.type === 'multi-answer') {
+        return block.answerFields.map((field, index) => ({
+            key: `${screenKey}:${field.id}`,
+            label: `${screenLabel} - ${block.content || 'Multi answer'} - Answer ${index + 1}`,
         }));
     }
 

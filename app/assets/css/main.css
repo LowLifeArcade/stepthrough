@@ -916,6 +916,18 @@ body {
     gap: 1rem;
 }
 
+.multi-answer-block-fields {
+    display: grid;
+    gap: 1rem;
+}
+
+.answer-field-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+}
+
 .previous-answer-fields {
     display: grid;
     grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1fr);
@@ -2314,6 +2326,7 @@ body {
     .block-row,
     .step-main-grid,
     .question-row,
+    .answer-field-row,
     .previous-answer-fields,
     .review-grid {
         grid-template-columns: 1fr;
