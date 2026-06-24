@@ -1622,7 +1622,7 @@ body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(28rem, 38rem);
     gap: 2rem;
-    align-items: end;
+    align-items: center;
 }
 
 .live-home-header .live-brand {
@@ -1816,7 +1816,7 @@ body {
 
 .live-title-block {
     display: grid;
-    gap: 0.8rem;
+    gap: 2rem;
 }
 
 .live-title-block h1 {

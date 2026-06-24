@@ -27,13 +27,13 @@
             class="live-home"
         >
             <header class="live-home-header">
-                <NuxtLink
-                    class="live-brand"
-                    to="/"
-                >
-                    StepThrough
-                </NuxtLink>
                 <div class="live-title-block">
+                    <NuxtLink
+                        class="live-brand"
+                        to="/"
+                    >
+                        StepThrough
+                    </NuxtLink>
                     <!-- <span class="detail-meta">Specific step-through list</span> -->
                     <h1>{{ project.title }}</h1>
                     <p>{{ project.description }}</p>
@@ -87,7 +87,10 @@
                 <header class="instance-panel-header">
                     <div>
                         <span class="detail-meta">Walkthrough instances</span>
-                        <h2>{{ project.viewerAuthenticated ? instances.length : 0 }} saved {{ instances.length === 1 ? 'walkthrough' : 'walkthroughs' }}</h2>
+                        <h2>
+                            {{ project.viewerAuthenticated ? instances.length : 0 }} saved
+                            {{ instances.length === 1 ? 'walkthrough' : 'walkthroughs' }}
+                        </h2>
                     </div>
                     <div
                         class="view-toggle"
@@ -127,7 +130,9 @@
                     class="empty-instance-list"
                 >
                     <strong>No instances yet</strong>
-                    <p>Start one for a person, moment, or intention. Answers will be saved to that specific instance.</p>
+                    <p>
+                        Start one for a person, moment, or intention. Answers will be saved to that specific instance.
+                    </p>
                 </div>
 
                 <div
@@ -154,7 +159,11 @@
                         </span>
                         <span class="instance-copy">
                             <strong>{{ instance.title }}</strong>
-                            <small>{{ instance.completed_at ? 'Completed' : `Step ${instance.current_screen_index + 1} of ${screens.length}` }}</small>
+                            <small>{{
+                                instance.completed_at
+                                    ? 'Completed'
+                                    : `Step ${instance.current_screen_index + 1} of ${screens.length}`
+                            }}</small>
                             <small>Updated {{ formatDate(instance.updated_at) }}</small>
                         </span>
                         <ArrowRight :size="18" />
@@ -245,7 +254,10 @@
 
                 <template v-else>
                     <header class="live-card-header">
-                        <span class="detail-meta">{{ currentScreen.kind === 'step' ? 'Step' : 'Page' }} {{ currentIndex + 1 }} of {{ screens.length }}</span>
+                        <span class="detail-meta"
+                            >{{ currentScreen.kind === 'step' ? 'Step' : 'Page' }} {{ currentIndex + 1 }} of
+                            {{ screens.length }}</span
+                        >
                         <h2>{{ currentScreen.title }}</h2>
                     </header>
 
@@ -333,8 +345,14 @@
                         @click="goForward"
                     >
                         {{ isFinished ? 'Start again' : currentIndex === screens.length - 1 ? 'Finish' : 'Continue' }}
-                        <Check v-if="!isFinished && currentIndex === screens.length - 1" :size="18" />
-                        <ArrowRight v-else :size="18" />
+                        <Check
+                            v-if="!isFinished && currentIndex === screens.length - 1"
+                            :size="18"
+                        />
+                        <ArrowRight
+                            v-else
+                            :size="18"
+                        />
                     </button>
                 </footer>
             </article>
@@ -372,7 +390,16 @@ type WalkthroughInstance = {
 };
 
 type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
-type BlockType = 'content' | 'questions' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
+type BlockType =
+    | 'content'
+    | 'questions'
+    | 'notes'
+    | 'hero'
+    | 'quote'
+    | 'standout'
+    | 'image'
+    | 'resource'
+    | 'previous-answer';
 
 type LiveQuestion = {
     id: string;
@@ -455,10 +482,12 @@ const blueprint = computed(() => parseBlueprint(project.value?.blueprint));
 const screens = computed(() => buildScreens(blueprint.value));
 const currentScreen = computed(() => screens.value[currentIndex.value] || screens.value[0] || createEmptyScreen());
 const instances = computed(() => project.value?.instances || []);
-const welcomeBackPrompt = computed(() => blueprint.value.welcomeBack?.prompt?.trim() || 'Take a moment before you continue.');
+const welcomeBackPrompt = computed(
+    () => blueprint.value.welcomeBack?.prompt?.trim() || 'Take a moment before you continue.',
+);
 const welcomeBackTitle = computed(() => currentScreen.value?.title || project.value?.title || 'Step-through');
-const shouldOfferWelcomeBackModal = computed(
-    () => Boolean(activeInstance.value && blueprint.value.welcomeBack?.enabled && !isFinished.value),
+const shouldOfferWelcomeBackModal = computed(() =>
+    Boolean(activeInstance.value && blueprint.value.welcomeBack?.enabled && !isFinished.value),
 );
 
 onMounted(() => {
@@ -535,7 +564,12 @@ function parseBlueprint(value: LiveProject['blueprint']): LiveBlueprint {
 function buildScreens(value: LiveBlueprint): LiveScreen[] {
     const pages = Array.isArray(value.pages) ? value.pages : [];
     const built = pages.flatMap((page, pageIndex) => {
-        const stepScreen = createScreen(page, `step-${page.id || pageIndex}`, 'step', page.title || `Step ${pageIndex + 1}`);
+        const stepScreen = createScreen(
+            page,
+            `step-${page.id || pageIndex}`,
+            'step',
+            page.title || `Step ${pageIndex + 1}`,
+        );
         const subScreens = Array.isArray(page.subPages)
             ? page.subPages.map((subPage, subIndex) =>
                   createScreen(
@@ -554,7 +588,13 @@ function buildScreens(value: LiveBlueprint): LiveScreen[] {
     return built.length ? built : [createEmptyScreen()];
 }
 
-function createScreen(page: LivePage, key: string, kind: LiveScreen['kind'], title: string, parentTitle = ''): LiveScreen {
+function createScreen(
+    page: LivePage,
+    key: string,
+    kind: LiveScreen['kind'],
+    title: string,
+    parentTitle = '',
+): LiveScreen {
     return {
         key,
         kind,
@@ -706,7 +746,10 @@ function openInstance(instance: WalkthroughInstance, options: { showWelcomeBack?
     activeInstance.value = instance;
     dismissedWelcomeInstanceId.value = options.showWelcomeBack === false ? instance.id : null;
     isFinished.value = Boolean(instance.completed_at);
-    currentIndex.value = Math.min(Math.max(0, instance.current_screen_index || 0), Math.max(0, screens.value.length - 1));
+    currentIndex.value = Math.min(
+        Math.max(0, instance.current_screen_index || 0),
+        Math.max(0, screens.value.length - 1),
+    );
     Object.keys(answers).forEach((key) => {
         delete answers[key];
     });
@@ -863,7 +906,8 @@ async function replayPendingLiveAction() {
             return;
         }
 
-        const matchingInstance = instances.value.find((instance) => instance.id === action.instance.id) || action.instance;
+        const matchingInstance =
+            instances.value.find((instance) => instance.id === action.instance.id) || action.instance;
         openInstance(matchingInstance);
         Object.keys(answers).forEach((key) => {
             delete answers[key];
