@@ -277,6 +277,17 @@
                                     <h2>{{ wizardSteps[wizardStep].title }}</h2>
                                 </div>
                                 <div class="wizard-header-actions">
+                                    <Transition name="save-toast">
+                                        <span
+                                            v-if="saveConfirmation"
+                                            class="save-confirmation"
+                                            role="status"
+                                            aria-live="polite"
+                                        >
+                                            <Check :size="18" />
+                                            {{ saveConfirmation }}
+                                        </span>
+                                    </Transition>
                                     <button
                                         class="primary-button"
                                         type="button"
@@ -1774,6 +1785,8 @@ const creating = ref(false);
 const activeDashboardTab = ref<'projects' | 'templates'>('projects');
 const publishingProjectId = ref<string | null>(null);
 const createError = ref('');
+const saveConfirmation = ref('');
+let saveConfirmationTimer: ReturnType<typeof setTimeout> | undefined;
 const publishError = ref('');
 const selectedProjectId = ref<string | null>(null);
 const editingProjectId = ref<string | null>(null);
@@ -1882,6 +1895,18 @@ onMounted(() => {
     loadSavedCreateDraft();
     replayPendingDashboardAction();
 });
+
+onBeforeUnmount(() => {
+    clearTimeout(saveConfirmationTimer);
+});
+
+function showSaveConfirmation() {
+    clearTimeout(saveConfirmationTimer);
+    saveConfirmation.value = 'Changes saved';
+    saveConfirmationTimer = setTimeout(() => {
+        saveConfirmation.value = '';
+    }, 2400);
+}
 
 function createInitialDraft(): WizardDraft {
     return {
@@ -2014,6 +2039,7 @@ function normalizeDraft(value: Partial<WizardDraft>): WizardDraft {
 
 function openCreateWizard() {
     createError.value = '';
+    saveConfirmation.value = '';
     publishError.value = '';
     activeDashboardTab.value = 'projects';
     editingProjectId.value = null;
@@ -2022,11 +2048,13 @@ function openCreateWizard() {
 }
 
 function closeWizard() {
+    saveConfirmation.value = '';
     showCreate.value = false;
 }
 
 function openEditWizard(project: Project) {
     createError.value = '';
+    saveConfirmation.value = '';
     publishError.value = '';
     activeDashboardTab.value = 'projects';
     editingProjectId.value = project.id;
@@ -2525,6 +2553,7 @@ function formatSubPageProgress(index: number, total: number) {
 
 async function onSaveProject() {
     createError.value = '';
+    saveConfirmation.value = '';
 
     if (!draft.title.trim()) {
         createError.value = 'Project title is required.';
@@ -2533,6 +2562,7 @@ async function onSaveProject() {
     }
 
     creating.value = true;
+    const isEditing = Boolean(editingProjectId.value);
 
     try {
         const saved = await $fetch<Project>(editingProjectId.value ? `/api/projects/${editingProjectId.value}` : '/api/projects', {
@@ -2540,11 +2570,17 @@ async function onSaveProject() {
             body: createProjectPayload(),
         });
 
-        showCreate.value = false;
         selectedProjectId.value = saved.id;
-        editingProjectId.value = null;
-        resetDraft();
         await refreshDashboardData();
+
+        if (isEditing) {
+            editingProjectId.value = saved.id;
+            showSaveConfirmation();
+        } else {
+            showCreate.value = false;
+            editingProjectId.value = null;
+            resetDraft();
+        }
     } catch (error: any) {
         if (redirectToLoginIfUnauthorized(error)) {
             storePendingDashboardAction({
@@ -2688,10 +2724,16 @@ async function replayPendingDashboardAction() {
             });
 
             selectedProjectId.value = persisted.id;
-            editingProjectId.value = null;
-            showCreate.value = false;
-            resetDraft();
             await refreshDashboardData();
+
+            if (action.editingProjectId) {
+                editingProjectId.value = persisted.id;
+                showSaveConfirmation();
+            } else {
+                editingProjectId.value = null;
+                showCreate.value = false;
+                resetDraft();
+            }
             return;
         }
 
