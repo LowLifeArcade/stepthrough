@@ -294,7 +294,14 @@
                                         :disabled="creating"
                                         @click="onSaveProject"
                                     >
-                                        <Save :size="18" />
+                                        <Check
+                                            v-if="editingProjectId && !hasUnsavedChanges && !creating"
+                                            :size="18"
+                                        />
+                                        <Save
+                                            v-else
+                                            :size="18"
+                                        />
                                         {{ creating ? 'Saving' : editingProjectId ? 'Save changes' : 'Save draft' }}
                                     </button>
                                     <button
@@ -1354,7 +1361,14 @@
                                         :disabled="creating"
                                         @click="onSaveProject"
                                     >
-                                        <Check :size="18" />
+                                        <Save
+                                            v-if="editingProjectId && (hasUnsavedChanges || creating)"
+                                            :size="18"
+                                        />
+                                        <Check
+                                            v-else
+                                            :size="18"
+                                        />
                                         {{ editingProjectId ? 'Save changes' : 'Done' }}
                                     </button>
                                 </div>
@@ -1790,6 +1804,7 @@ let saveConfirmationTimer: ReturnType<typeof setTimeout> | undefined;
 const publishError = ref('');
 const selectedProjectId = ref<string | null>(null);
 const editingProjectId = ref<string | null>(null);
+const savedDraftSnapshot = ref('');
 const publishProjectTarget = ref<Project | null>(null);
 const deleteProjectTarget = ref<Project | null>(null);
 const deleteProjectConfirmation = ref('');
@@ -1837,6 +1852,7 @@ const {
 
 const projects = computed(() => data.value || []);
 const openStepthroughs = computed(() => openStepthroughData.value || []);
+const hasUnsavedChanges = computed(() => Boolean(editingProjectId.value) && serializeDraft() !== savedDraftSnapshot.value);
 const selectedProject = computed(() => {
     if (!projects.value.length) {
         return null;
@@ -1906,6 +1922,10 @@ function showSaveConfirmation() {
     saveConfirmationTimer = setTimeout(() => {
         saveConfirmation.value = '';
     }, 2400);
+}
+
+function serializeDraft() {
+    return JSON.stringify(draft);
 }
 
 function createInitialDraft(): WizardDraft {
@@ -2049,6 +2069,7 @@ function openCreateWizard() {
 
 function closeWizard() {
     saveConfirmation.value = '';
+    savedDraftSnapshot.value = '';
     showCreate.value = false;
 }
 
@@ -2060,6 +2081,7 @@ function openEditWizard(project: Project) {
     editingProjectId.value = project.id;
     selectedProjectId.value = project.id;
     hydrateDraftFromProject(project);
+    savedDraftSnapshot.value = serializeDraft();
     wizardStep.value = 0;
     activeStepPageIndex.value = 0;
     showCreate.value = true;
@@ -2563,6 +2585,7 @@ async function onSaveProject() {
 
     creating.value = true;
     const isEditing = Boolean(editingProjectId.value);
+    const savingDraftSnapshot = serializeDraft();
 
     try {
         const saved = await $fetch<Project>(editingProjectId.value ? `/api/projects/${editingProjectId.value}` : '/api/projects', {
@@ -2575,6 +2598,7 @@ async function onSaveProject() {
 
         if (isEditing) {
             editingProjectId.value = saved.id;
+            savedDraftSnapshot.value = savingDraftSnapshot;
             showSaveConfirmation();
         } else {
             showCreate.value = false;
@@ -2717,6 +2741,7 @@ async function replayPendingDashboardAction() {
             activeStepPageIndex.value = action.activeStepPageIndex;
             showCreate.value = true;
             creating.value = true;
+            const savingDraftSnapshot = serializeDraft();
 
             const persisted = await $fetch<Project>(action.editingProjectId ? `/api/projects/${action.editingProjectId}` : '/api/projects', {
                 method: action.editingProjectId ? 'PUT' : 'POST',
@@ -2728,6 +2753,7 @@ async function replayPendingDashboardAction() {
 
             if (action.editingProjectId) {
                 editingProjectId.value = persisted.id;
+                savedDraftSnapshot.value = savingDraftSnapshot;
                 showSaveConfirmation();
             } else {
                 editingProjectId.value = null;
