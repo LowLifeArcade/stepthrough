@@ -175,6 +175,7 @@
         <section
             v-else
             class="live-experience"
+            :class="{ 'mobile-nav-open': isMobileNavOpen }"
         >
             <Transition name="live-welcome-modal">
                 <div
@@ -213,7 +214,47 @@
                 </div>
             </Transition>
 
-            <aside class="live-sidebar">
+            <button
+                class="live-brand live-mobile-home"
+                type="button"
+                @click="returnHome"
+            >
+                StepThrough
+            </button>
+
+            <button
+                class="live-mobile-nav-toggle"
+                type="button"
+                :aria-expanded="isMobileNavOpen"
+                aria-controls="live-walkthrough-navigation"
+                :aria-label="isMobileNavOpen ? 'Close step navigation' : 'Open step navigation'"
+                @click="isMobileNavOpen = !isMobileNavOpen"
+            >
+                <X
+                    v-if="isMobileNavOpen"
+                    :size="22"
+                />
+                <Menu
+                    v-else
+                    :size="22"
+                />
+            </button>
+
+            <Transition name="live-mobile-nav-backdrop">
+                <button
+                    v-if="isMobileNavOpen"
+                    class="live-mobile-nav-backdrop"
+                    type="button"
+                    aria-label="Close step navigation"
+                    @click="closeMobileNav"
+                ></button>
+            </Transition>
+
+            <aside
+                id="live-walkthrough-navigation"
+                class="live-sidebar"
+                :class="{ open: isMobileNavOpen }"
+            >
                 <button
                     class="live-brand"
                     type="button"
@@ -236,7 +277,7 @@
                         class="live-progress-item"
                         :class="{ active: currentIndex === index, complete: currentIndex > index }"
                         type="button"
-                        @click="currentIndex = index"
+                        @click="selectScreen(index)"
                     >
                         <span>{{ index + 1 }}</span>
                         {{ item.navTitle }}
@@ -386,7 +427,19 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, LayoutGrid, List, Play, Plus, Sparkles } from '@lucide/vue';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Check,
+    CheckCircle2,
+    LayoutGrid,
+    List,
+    Menu,
+    Play,
+    Plus,
+    Sparkles,
+    X,
+} from '@lucide/vue';
 import { LogIn } from '@lucide/vue';
 import { renderFormattedContent } from '~/utils/contentFormatting';
 
@@ -509,6 +562,7 @@ const saveRevision = ref(0);
 const lastAppliedSaveRevision = ref(0);
 const showWelcomeBackModal = ref(false);
 const dismissedWelcomeInstanceId = ref<string | null>(null);
+const isMobileNavOpen = ref(false);
 
 const { data: project, pending, error, refresh } = await useFetch<LiveProject>(`/api/live/${route.params.id}`);
 const blueprint = computed(() => parseBlueprint(project.value?.blueprint));
@@ -526,6 +580,11 @@ const shouldOfferWelcomeBackModal = computed(() =>
 onMounted(() => {
     restoreViewMode();
     replayPendingLiveAction();
+    window.addEventListener('keydown', handleMobileNavKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleMobileNavKeydown);
 });
 
 function setViewMode(mode: 'tiles' | 'list') {
@@ -792,6 +851,7 @@ async function createInstance() {
 }
 
 function openInstance(instance: WalkthroughInstance, options: { showWelcomeBack?: boolean } = {}) {
+    closeMobileNav();
     activeInstance.value = instance;
     dismissedWelcomeInstanceId.value = options.showWelcomeBack === false ? instance.id : null;
     isFinished.value = Boolean(instance.completed_at);
@@ -807,6 +867,7 @@ function openInstance(instance: WalkthroughInstance, options: { showWelcomeBack?
 }
 
 async function returnHome() {
+    closeMobileNav();
     await saveInstance();
     activeInstance.value = null;
     isFinished.value = false;
@@ -1002,6 +1063,21 @@ function updateSavedInstance(saved: WalkthroughInstance) {
 function dismissWelcomeBackModal() {
     dismissedWelcomeInstanceId.value = activeInstance.value?.id || null;
     showWelcomeBackModal.value = false;
+}
+
+function closeMobileNav() {
+    isMobileNavOpen.value = false;
+}
+
+function handleMobileNavKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+        closeMobileNav();
+    }
+}
+
+function selectScreen(index: number) {
+    currentIndex.value = index;
+    closeMobileNav();
 }
 
 function goForward() {
