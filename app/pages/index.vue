@@ -632,6 +632,7 @@
                                                         </template>
                                                         <template v-else-if="block.type === 'multi-answer'">
                                                             <div class="multi-answer-block-fields">
+                                                                <FormattingHelp />
                                                                 <label class="field">
                                                                     <span class="field-label">Description</span>
                                                                     <textarea
@@ -806,7 +807,11 @@
                                                         </label>
                                                     </template>
                                                     <template v-else-if="block.type === 'multi-answer'">
-                                                        <p v-if="block.content">{{ block.content }}</p>
+                                                        <div
+                                                            v-if="block.content"
+                                                            class="formatted-content"
+                                                            v-html="renderFormattedContent(block.content)"
+                                                        ></div>
                                                         <label
                                                             v-for="(answerField, answerIndex) in block.answerFields"
                                                             :key="answerField.id"
@@ -1095,6 +1100,7 @@
                                                             </template>
                                                             <template v-else-if="block.type === 'multi-answer'">
                                                                 <div class="multi-answer-block-fields">
+                                                                    <FormattingHelp />
                                                                     <label class="field">
                                                                         <span class="field-label">Description</span>
                                                                         <textarea
@@ -1280,7 +1286,11 @@
                                                         </label>
                                                     </template>
                                                     <template v-else-if="block.type === 'multi-answer'">
-                                                        <p v-if="block.content">{{ block.content }}</p>
+                                                        <div
+                                                            v-if="block.content"
+                                                            class="formatted-content"
+                                                            v-html="renderFormattedContent(block.content)"
+                                                        ></div>
                                                         <label
                                                             v-for="(answerField, answerIndex) in block.answerFields"
                                                             :key="answerField.id"

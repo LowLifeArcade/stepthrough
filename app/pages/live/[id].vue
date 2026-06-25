@@ -196,7 +196,9 @@
                                 <h2 id="welcome-back-title">{{ welcomeBackTitle }}</h2>
                             </div>
                         </header>
-                        <p>{{ welcomeBackPrompt }}</p>
+                        <div class="live-welcome-message">
+                            <p>{{ welcomeBackPrompt }}</p>
+                        </div>
                         <footer class="live-welcome-modal-actions">
                             <button
                                 class="primary-button"
@@ -307,7 +309,11 @@
                                 </label>
                             </template>
                             <template v-else-if="block.type === 'multi-answer'">
-                                <p v-if="block.content">{{ block.content }}</p>
+                                <div
+                                    v-if="block.content"
+                                    class="formatted-content"
+                                    v-html="renderFormattedContent(block.content)"
+                                ></div>
                                 <label
                                     v-for="(answerField, answerIndex) in block.answerFields"
                                     :key="answerField.id"
