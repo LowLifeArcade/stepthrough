@@ -35,6 +35,8 @@
         "@lucide/vue": "^1.20.0",
         "nuxt": "^4.3.1",
         "nuxt-auth-utils": "^0.5.29",
+        "pdfjs-dist": "4.10.38",
+        "tesseract.js": "^7.0.0",
         "vue": "^3.5.30",
         "vue-router": "^4.6.4"
     },

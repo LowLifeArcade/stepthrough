@@ -685,10 +685,11 @@
                                                             </div>
                                                         </template>
                                                         <template v-else>
-                                                            <span class="formatting-hint">
-                                                                Formatting: **bold**, *italic*, # heading, - bullet, 1. numbered,
-                                                                &gt; quote, [link](https://...)
-                                                            </span>
+                                                            <FormattingHelp />
+                                                            <ContentPhotoScanner
+                                                                v-if="block.type === 'content'"
+                                                                @extracted="addExtractedText(block, $event)"
+                                                            />
                                                             <textarea
                                                                 v-model="block.content"
                                                                 class="text-input textarea-input compact-textarea"
@@ -698,7 +699,7 @@
                                                             ></textarea>
                                                         </template>
                                                         <label
-                                                            v-if="canFrameBlock(block.type)"
+                                                            v-if="canFrameBlock(block.type) && block.type !== 'content'"
                                                             class="toggle-row compact-toggle"
                                                         >
                                                             <input
@@ -1147,10 +1148,11 @@
                                                                 </div>
                                                             </template>
                                                             <template v-else>
-                                                                <span class="formatting-hint">
-                                                                    Formatting: **bold**, *italic*, # heading, - bullet, 1. numbered,
-                                                                    &gt; quote, [link](https://...)
-                                                                </span>
+                                                                <FormattingHelp />
+                                                                <ContentPhotoScanner
+                                                                    v-if="block.type === 'content'"
+                                                                    @extracted="addExtractedText(block, $event)"
+                                                                />
                                                                 <textarea
                                                                     v-model="block.content"
                                                                     class="text-input textarea-input compact-textarea"
@@ -1160,7 +1162,7 @@
                                                                 ></textarea>
                                                             </template>
                                                             <label
-                                                                v-if="canFrameBlock(block.type)"
+                                                                v-if="canFrameBlock(block.type) && block.type !== 'content'"
                                                                 class="toggle-row compact-toggle"
                                                             >
                                                                 <input
@@ -2214,6 +2216,11 @@ function addBlock(target: WizardPage | WizardSubPage, type: BlockType) {
     target.blocks.push(createBlock(type));
 }
 
+function addExtractedText(block: WizardBlock, text: string) {
+    const existingContent = block.content.trim();
+    block.content = existingContent ? `${existingContent}\n\n${text}` : text;
+}
+
 function removeBlock(target: WizardPage | WizardSubPage, index: number) {
     target.blocks.splice(index, 1);
 }
@@ -2240,7 +2247,7 @@ function syncBlockType(block: WizardBlock) {
     block.answerFields = block.type === 'multi-answer' ? block.answerFields.length ? block.answerFields : defaults.answerFields : [];
     block.previousAnswerKey = block.type === 'previous-answer' ? block.previousAnswerKey : '';
     block.previousAnswerLabel = block.type === 'previous-answer' ? block.previousAnswerLabel || defaults.previousAnswerLabel : '';
-    block.hasFrame = canFrameBlock(block.type) ? block.hasFrame : false;
+    block.hasFrame = block.type !== 'content' && canFrameBlock(block.type) ? block.hasFrame : false;
 }
 
 function canFrameBlock(type: BlockType) {
@@ -2314,7 +2321,7 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 ...createBlock(type),
                 ...block,
                 type,
-                content: typeof block.content === 'string' ? block.content : '',
+                content: normalizeLegacyFramedContent(type, block.content, block.hasFrame),
                 imageUrl: typeof block.imageUrl === 'string' ? block.imageUrl : '',
                 caption: typeof block.caption === 'string' ? block.caption : '',
                 opensInModal: Boolean(block.opensInModal),
@@ -2323,7 +2330,7 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
                 previousAnswerLabel: type === 'previous-answer' && typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : 'Previous answer',
                 sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
-                hasFrame: canFrameBlock(type) && Boolean(block.hasFrame),
+                hasFrame: type !== 'content' && canFrameBlock(type) && Boolean(block.hasFrame),
             };
         });
 
@@ -2332,6 +2339,16 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
     }
 
     return blocks;
+}
+
+function normalizeLegacyFramedContent(type: BlockType, content: unknown, hasFrame: unknown) {
+    const normalizedContent = typeof content === 'string' ? content : '';
+
+    if (type !== 'content' || !hasFrame || !normalizedContent.trim() || normalizedContent.includes('::: aside')) {
+        return normalizedContent;
+    }
+
+    return `::: aside\n${normalizedContent}\n:::`;
 }
 
 function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQuestion[] {

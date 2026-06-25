@@ -2,6 +2,8 @@ const unorderedListPattern = /^\s*[-+*]\s+(.+)$/;
 const orderedListPattern = /^\s*\d+[.)]\s+(.+)$/;
 const headingPattern = /^(#{1,3})\s+(.+)$/;
 const quotePattern = /^>\s?(.*)$/;
+const asideOpenPattern = /^:::\s*aside\s*$/i;
+const asideClosePattern = /^:::\s*$/;
 
 function escapeHtml(value: string) {
     return value
@@ -44,6 +46,7 @@ export function renderFormattedContent(value: string) {
     const output: string[] = [];
     let paragraph: string[] = [];
     let listType: 'ul' | 'ol' | null = null;
+    let asideOpen = false;
 
     const closeParagraph = () => {
         if (!paragraph.length) {
@@ -80,7 +83,22 @@ export function renderFormattedContent(value: string) {
         const orderedItem = line.match(orderedListPattern);
         const quote = line.match(quotePattern);
 
-        if (!line.trim()) {
+        if (asideOpenPattern.test(line)) {
+            closeParagraph();
+            closeList();
+
+            if (asideOpen) {
+                output.push('</aside>');
+            }
+
+            output.push('<aside class="formatted-aside">');
+            asideOpen = true;
+        } else if (asideClosePattern.test(line) && asideOpen) {
+            closeParagraph();
+            closeList();
+            output.push('</aside>');
+            asideOpen = false;
+        } else if (!line.trim()) {
             closeParagraph();
             closeList();
         } else if (heading) {
@@ -106,6 +124,10 @@ export function renderFormattedContent(value: string) {
 
     closeParagraph();
     closeList();
+
+    if (asideOpen) {
+        output.push('</aside>');
+    }
 
     return output.join('');
 }
