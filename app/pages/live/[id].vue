@@ -566,7 +566,7 @@
                                         class="sum-chip-option"
                                         :class="{ selected: isSumChipSelected(activeSumChipOptions.key, chip) }"
                                         type="button"
-                                        @click="selectSumChipOption(activeSumChipOptions.key, chip)"
+                                        @click="toggleSumChipOption(activeSumChipOptions.key, chip)"
                                     >
                                         {{ chip }}
                                     </button>
@@ -1181,8 +1181,10 @@ function isSumChipSelected(key: string, chip: string) {
     return chipAnswerValue(key).some((selectedChip) => normalizeSumChip(selectedChip) === normalizeSumChip(chip));
 }
 
-function selectSumChipOption(key: string, chip: string) {
+function toggleSumChipOption(key: string, chip: string) {
     if (isSumChipSelected(key, chip)) {
+        let idx = answers[key]?.indexOf(chip)
+        answers[key] = answers[key]?.toSpliced(idx, 1);
         return;
     }
 
