@@ -999,6 +999,30 @@ body {
     gap: 0.8rem;
 }
 
+.sum-chip-global-options {
+    display: grid;
+    gap: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.8rem;
+    background: #fffdf8;
+    padding: 1rem;
+}
+
+.sum-chip-global-toggle {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--color-text);
+    font-weight: 850;
+}
+
+.sum-chip-global-toggle input {
+    width: 1.8rem;
+    height: 1.8rem;
+    accent-color: #8f1d1d;
+}
+
 .multi-answer-block-fields {
     display: grid;
     gap: 1rem;

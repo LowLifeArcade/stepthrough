@@ -658,6 +658,49 @@
                                                         <template v-else-if="block.type === 'questions'">
                                                             <div class="question-block-fields">
                                                                 <div
+                                                                    v-if="hasSumChipQuestions(block)"
+                                                                    class="sum-chip-global-options"
+                                                                >
+                                                                    <div class="sum-chip-options-editor">
+                                                                        <article
+                                                                            v-for="(group, groupIndex) in block.globalSumChipOptionGroups"
+                                                                            :key="group.id"
+                                                                            class="sum-chip-option-group-editor"
+                                                                        >
+                                                                            <input
+                                                                                v-model="group.header"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Global group header"
+                                                                            />
+                                                                            <input
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="pizza, salmon, bread"
+                                                                                :value="sumChipGroupChipsText(group)"
+                                                                                @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                            />
+                                                                            <button
+                                                                                class="icon-button"
+                                                                                type="button"
+                                                                                title="Remove global option group"
+                                                                                aria-label="Remove global option group"
+                                                                                @click="removeGlobalSumChipOptionGroup(block, groupIndex)"
+                                                                            >
+                                                                                <Trash2 :size="18" />
+                                                                            </button>
+                                                                        </article>
+                                                                        <button
+                                                                            class="secondary-button add-row-button"
+                                                                            type="button"
+                                                                            @click="addGlobalSumChipOptionGroup(block)"
+                                                                        >
+                                                                            <Plus :size="18" />
+                                                                            Add global option group
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <div
                                                                     v-for="(question, questionIndex) in block.questions"
                                                                     :key="question.id"
                                                                     class="question-editor"
@@ -678,7 +721,7 @@
                                                                         <select
                                                                             v-model="question.inputType"
                                                                             class="text-input compact-select"
-                                                                            @change="syncQuestionInputType(question)"
+                                                                            @change="syncQuestionInputType(block, question)"
                                                                         >
                                                                             <option value="text">Short text</option>
                                                                             <option value="textarea">Long text</option>
@@ -700,6 +743,14 @@
                                                                         v-if="question.inputType === 'sum-chips'"
                                                                         class="sum-chip-options-editor"
                                                                     >
+                                                                        <label class="sum-chip-global-toggle">
+                                                                            <input
+                                                                                v-model="question.useGlobalSumChipOptions"
+                                                                                type="checkbox"
+                                                                                @change="syncQuestionGlobalSumChipOptions(block, question)"
+                                                                            />
+                                                                            <span>Use global options</span>
+                                                                        </label>
                                                                         <article
                                                                             v-for="(group, groupIndex) in question.optionGroups"
                                                                             :key="group.id"
@@ -1284,6 +1335,49 @@
                                                             <template v-else-if="block.type === 'questions'">
                                                                 <div class="question-block-fields">
                                                                     <div
+                                                                        v-if="hasSumChipQuestions(block)"
+                                                                        class="sum-chip-global-options"
+                                                                    >
+                                                                        <div class="sum-chip-options-editor">
+                                                                            <article
+                                                                                v-for="(group, groupIndex) in block.globalSumChipOptionGroups"
+                                                                                :key="group.id"
+                                                                                class="sum-chip-option-group-editor"
+                                                                            >
+                                                                                <input
+                                                                                    v-model="group.header"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Global group header"
+                                                                                />
+                                                                                <input
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="pizza, salmon, bread"
+                                                                                    :value="sumChipGroupChipsText(group)"
+                                                                                    @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                                />
+                                                                                <button
+                                                                                    class="icon-button"
+                                                                                    type="button"
+                                                                                    title="Remove global option group"
+                                                                                    aria-label="Remove global option group"
+                                                                                    @click="removeGlobalSumChipOptionGroup(block, groupIndex)"
+                                                                                >
+                                                                                    <Trash2 :size="18" />
+                                                                                </button>
+                                                                            </article>
+                                                                            <button
+                                                                                class="secondary-button add-row-button"
+                                                                                type="button"
+                                                                                @click="addGlobalSumChipOptionGroup(block)"
+                                                                            >
+                                                                                <Plus :size="18" />
+                                                                                Add global option group
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
                                                                         v-for="(question, questionIndex) in block.questions"
                                                                         :key="question.id"
                                                                         class="question-editor"
@@ -1304,7 +1398,7 @@
                                                                             <select
                                                                                 v-model="question.inputType"
                                                                                 class="text-input compact-select"
-                                                                                @change="syncQuestionInputType(question)"
+                                                                                @change="syncQuestionInputType(block, question)"
                                                                             >
                                                                                 <option value="text">Short text</option>
                                                                                 <option value="textarea">Long text</option>
@@ -1326,6 +1420,14 @@
                                                                             v-if="question.inputType === 'sum-chips'"
                                                                             class="sum-chip-options-editor"
                                                                         >
+                                                                            <label class="sum-chip-global-toggle">
+                                                                                <input
+                                                                                    v-model="question.useGlobalSumChipOptions"
+                                                                                    type="checkbox"
+                                                                                    @change="syncQuestionGlobalSumChipOptions(block, question)"
+                                                                                />
+                                                                                <span>Use global options</span>
+                                                                            </label>
                                                                             <article
                                                                                 v-for="(group, groupIndex) in question.optionGroups"
                                                                                 :key="group.id"
@@ -2022,6 +2124,7 @@ type WizardBlock = {
     imageAspectRatio: ImageAspectRatio;
     imageFit: ImageFit;
     opensInModal: boolean;
+    globalSumChipOptionGroups: SumChipOptionGroup[];
     questions: WizardQuestion[];
     answerFields: MultiAnswerField[];
     previousAnswerKey: string;
@@ -2035,6 +2138,7 @@ type WizardQuestion = {
     label: string;
     placeholder: string;
     inputType: QuestionInputType;
+    useGlobalSumChipOptions: boolean;
     optionGroups: SumChipOptionGroup[];
 };
 
@@ -2286,6 +2390,7 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
         label,
         placeholder,
         inputType,
+        useGlobalSumChipOptions: false,
         optionGroups: inputType === 'sum-chips' ? defaultSumChipOptionGroups() : [],
     };
 }
@@ -2321,6 +2426,7 @@ function createBlock(type: BlockType): WizardBlock {
         imageAspectRatio: 'original',
         imageFit: 'cover',
         opensInModal: type === 'resource',
+        globalSumChipOptionGroups: [],
         questions: type === 'questions' ? [createQuestion()] : [],
         answerFields: type === 'multi-answer' ? [createAnswerField()] : [],
         previousAnswerKey: '',
@@ -2574,18 +2680,36 @@ function removeQuestion(target: WizardBlock, index: number) {
     target.questions.splice(index, 1);
 }
 
-function syncQuestionInputType(question: WizardQuestion) {
+function syncQuestionInputType(block: WizardBlock, question: WizardQuestion) {
     if (question.inputType === 'sum-chips' && !question.optionGroups.length) {
         question.optionGroups = defaultSumChipOptionGroups();
     }
+
+    if (question.inputType === 'sum-chips' && !block.globalSumChipOptionGroups.length) {
+        block.globalSumChipOptionGroups = defaultSumChipOptionGroups();
+    }
+}
+
+function hasSumChipQuestions(block: WizardBlock) {
+    return block.questions.some((question) => question.inputType === 'sum-chips');
+}
+
+function syncQuestionGlobalSumChipOptions(block: WizardBlock, question: WizardQuestion) {
+    if (question.useGlobalSumChipOptions && !block.globalSumChipOptionGroups.length) {
+        block.globalSumChipOptionGroups = defaultSumChipOptionGroups();
+    }
+}
+
+function addGlobalSumChipOptionGroup(block: WizardBlock) {
+    block.globalSumChipOptionGroups.push(createSumChipOptionGroup(`Group ${block.globalSumChipOptionGroups.length + 1}`));
+}
+
+function removeGlobalSumChipOptionGroup(block: WizardBlock, groupIndex: number) {
+    block.globalSumChipOptionGroups.splice(groupIndex, 1);
 }
 
 function addSumChipOptionGroup(question: WizardQuestion) {
-    question.optionGroups.push({
-        id: createId(),
-        header: `Group ${question.optionGroups.length + 1}`,
-        chips: [],
-    });
+    question.optionGroups.push(createSumChipOptionGroup(`Group ${question.optionGroups.length + 1}`));
 }
 
 function removeSumChipOptionGroup(question: WizardQuestion, groupIndex: number) {
@@ -2598,6 +2722,14 @@ function sumChipGroupChipsText(group: SumChipOptionGroup) {
 
 function setSumChipGroupChips(group: SumChipOptionGroup, value: string) {
     group.chips = uniqueSumChips(value.split(','));
+}
+
+function createSumChipOptionGroup(header: string, chips: string[] = []): SumChipOptionGroup {
+    return {
+        id: createId(),
+        header,
+        chips,
+    };
 }
 
 function addAnswerField(target: WizardBlock) {
@@ -2684,6 +2816,12 @@ function syncBlockType(block: WizardBlock) {
     block.imageAspectRatio = block.type === 'image' ? normalizeImageAspectRatio(block.imageAspectRatio) : defaults.imageAspectRatio;
     block.imageFit = block.type === 'image' ? normalizeImageFit(block.imageFit) : defaults.imageFit;
     block.opensInModal = block.type === 'resource' ? block.opensInModal : false;
+    block.globalSumChipOptionGroups =
+        block.type === 'questions' && hasSumChipQuestions(block)
+            ? block.globalSumChipOptionGroups.length
+                ? block.globalSumChipOptionGroups
+                : defaultSumChipOptionGroups()
+            : [];
     block.questions = block.type === 'questions' ? block.questions.length ? block.questions : defaults.questions : [];
     block.answerFields = block.type === 'multi-answer' ? block.answerFields.length ? block.answerFields : defaults.answerFields : [];
     block.previousAnswerKey = block.type === 'previous-answer' ? block.previousAnswerKey : '';
@@ -2769,6 +2907,10 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 imageAspectRatio: normalizeImageAspectRatio(block.imageAspectRatio),
                 imageFit: normalizeImageFit(block.imageFit),
                 opensInModal: Boolean(block.opensInModal),
+                globalSumChipOptionGroups:
+                    type === 'questions'
+                        ? normalizeSumChipOptionGroups(block.globalSumChipOptionGroups, false)
+                        : [],
                 questions: type === 'questions' ? questions.length ? questions : [createQuestion()] : [],
                 answerFields: type === 'multi-answer' ? answerFields.length ? answerFields : [createAnswerField()] : [],
                 previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
@@ -2804,6 +2946,8 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
                 label: typeof question.label === 'string' ? question.label : 'Question',
                 placeholder: typeof question.placeholder === 'string' ? question.placeholder : 'Answer',
                 inputType: normalizeInputType(question.inputType),
+                useGlobalSumChipOptions:
+                    normalizeInputType(question.inputType) === 'sum-chips' && Boolean(question.useGlobalSumChipOptions),
                 optionGroups: normalizeInputType(question.inputType) === 'sum-chips'
                     ? normalizeSumChipOptionGroups(question.optionGroups)
                     : [],
@@ -2825,8 +2969,8 @@ function defaultSumChipOptionGroups(): SumChipOptionGroup[] {
     ];
 }
 
-function normalizeSumChipOptionGroups(value: unknown): SumChipOptionGroup[] {
-    const groups = Array.isArray(value) ? value : defaultSumChipOptionGroups();
+function normalizeSumChipOptionGroups(value: unknown, useDefaults = true): SumChipOptionGroup[] {
+    const groups = Array.isArray(value) ? value : useDefaults ? defaultSumChipOptionGroups() : [];
 
     return groups
         .filter((group): group is Partial<SumChipOptionGroup> => Boolean(group && typeof group === 'object'))

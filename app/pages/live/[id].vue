@@ -349,7 +349,7 @@
                                         <button
                                             class="sum-chip-options-link"
                                             type="button"
-                                            @click="openSumChipOptions(question, answerKey(currentScreen.key, question.id))"
+                                            @click="openSumChipOptions(block, question, answerKey(currentScreen.key, question.id))"
                                         >
                                             Open options
                                         </button>
@@ -554,7 +554,7 @@
                         </header>
                         <div class="sum-chip-options-groups">
                             <section
-                                v-for="group in activeSumChipOptions.question.optionGroups"
+                                v-for="group in activeSumChipOptions.optionGroups"
                                 :key="group.id"
                                 class="sum-chip-options-group"
                             >
@@ -643,6 +643,7 @@ type LiveQuestion = {
     label: string;
     placeholder: string;
     inputType: QuestionInputType;
+    useGlobalSumChipOptions: boolean;
     optionGroups: SumChipOptionGroup[];
 };
 
@@ -670,6 +671,7 @@ type LiveBlock = {
     imageSize: ImageSize;
     imageAspectRatio: ImageAspectRatio;
     imageFit: ImageFit;
+    globalSumChipOptionGroups: SumChipOptionGroup[];
     questions: LiveQuestion[];
     answerFields: LiveAnswerField[];
     previousAnswerKey: string;
@@ -727,7 +729,7 @@ const answers = reactive<Record<string, AnswerValue>>({});
 const sumChipInputDrafts = reactive<Record<string, string>>({});
 const sumChipDuplicateMessages = reactive<Record<string, string>>({});
 const sumChipViewModes = reactive<Record<string, 'chips' | 'list'>>({});
-const activeSumChipOptions = ref<{ key: string; question: LiveQuestion } | null>(null);
+const activeSumChipOptions = ref<{ key: string; question: LiveQuestion; optionGroups: SumChipOptionGroup[] } | null>(null);
 const activeInstance = ref<WalkthroughInstance | null>(null);
 const newInstanceTitle = ref('');
 const creatingInstance = ref(false);
@@ -887,6 +889,7 @@ function createEmptyScreen(): LiveScreen {
                 imageSize: 'full',
                 imageAspectRatio: 'original',
                 imageFit: 'cover',
+                globalSumChipOptionGroups: [],
                 questions: [],
                 answerFields: [],
                 previousAnswerKey: '',
@@ -914,6 +917,10 @@ function normalizeBlocks(value: unknown): LiveBlock[] {
             imageSize: normalizeImageSize(block.imageSize),
             imageAspectRatio: normalizeImageAspectRatio(block.imageAspectRatio),
             imageFit: normalizeImageFit(block.imageFit),
+            globalSumChipOptionGroups:
+                normalizeBlockType(block.type) === 'questions'
+                    ? normalizeSumChipOptionGroups(block.globalSumChipOptionGroups, false)
+                    : [],
             questions: normalizeQuestions(block.questions),
             answerFields: normalizeAnswerFields(block.answerFields),
             previousAnswerKey: typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
@@ -939,12 +946,14 @@ function normalizeQuestions(value: unknown): LiveQuestion[] {
             label: typeof question.label === 'string' ? question.label : 'Question',
             placeholder: typeof question.placeholder === 'string' ? question.placeholder : 'Answer',
             inputType: normalizeInputType(question.inputType),
+            useGlobalSumChipOptions:
+                normalizeInputType(question.inputType) === 'sum-chips' && Boolean(question.useGlobalSumChipOptions),
             optionGroups: normalizeSumChipOptionGroups(question.optionGroups),
         }));
 }
 
-function normalizeSumChipOptionGroups(value: unknown): SumChipOptionGroup[] {
-    const groups = Array.isArray(value) ? value : defaultSumChipOptionGroups();
+function normalizeSumChipOptionGroups(value: unknown, useDefaults = true): SumChipOptionGroup[] {
+    const groups = Array.isArray(value) ? value : useDefaults ? defaultSumChipOptionGroups() : [];
 
     return groups
         .filter((group): group is Partial<SumChipOptionGroup> => Boolean(group && typeof group === 'object'))
@@ -1153,13 +1162,14 @@ function removeSumChip(key: string, chipIndex: number) {
     scheduleInstanceSave();
 }
 
-function openSumChipOptions(question: LiveQuestion, key: string) {
+function openSumChipOptions(block: LiveBlock, question: LiveQuestion, key: string) {
     activeSumChipOptions.value = {
         key,
         question: {
             ...question,
             optionGroups: question.optionGroups.length ? question.optionGroups : defaultSumChipOptionGroups(),
         },
+        optionGroups: sumChipOptionGroupsForQuestion(block, question),
     };
 }
 
@@ -1179,6 +1189,13 @@ function selectSumChipOption(key: string, chip: string) {
     answers[key] = [...chipAnswerValue(key), chip.trim()];
     sumChipDuplicateMessages[key] = '';
     scheduleInstanceSave();
+}
+
+function sumChipOptionGroupsForQuestion(block: LiveBlock, question: LiveQuestion) {
+    const globalGroups = question.useGlobalSumChipOptions ? block.globalSumChipOptionGroups : [];
+    const questionGroups = question.optionGroups.length ? question.optionGroups : defaultSumChipOptionGroups();
+
+    return mergeSumChipOptionGroups([...globalGroups, ...questionGroups]);
 }
 
 function hasSumChipQuestions(block: LiveBlock) {
@@ -1239,6 +1256,28 @@ function uniqueSumChips(chips: string[]) {
             seen.add(normalized);
             return true;
         });
+}
+
+function mergeSumChipOptionGroups(groups: SumChipOptionGroup[]) {
+    const merged = new Map<string, SumChipOptionGroup>();
+
+    for (const group of groups) {
+        const header = group.header.trim() || 'Options';
+        const key = normalizeSumChip(header);
+        const existing = merged.get(key);
+
+        if (existing) {
+            existing.chips = uniqueSumChips([...existing.chips, ...group.chips]);
+        } else {
+            merged.set(key, {
+                id: group.id,
+                header,
+                chips: uniqueSumChips(group.chips),
+            });
+        }
+    }
+
+    return [...merged.values()].filter((group) => group.chips.length);
 }
 
 function isSumChipTotalsKey(value: string) {
