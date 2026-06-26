@@ -324,6 +324,8 @@
                                     v-if="block.imageUrl"
                                     :src="block.imageUrl"
                                     :alt="block.caption || currentScreen.title"
+                                    :class="imageBlockClasses(block)"
+                                    :style="imageBlockStyle(block)"
                                 />
                                 <p v-if="block.caption">{{ block.caption }}</p>
                             </template>
@@ -344,6 +346,13 @@
                                         <small class="sum-chip-input-hint">
                                             Press Tab or Enter to add a chip. Each field keeps one of each answer.
                                         </small>
+                                        <button
+                                            class="sum-chip-options-link"
+                                            type="button"
+                                            @click="openSumChipOptions(question, answerKey(currentScreen.key, question.id))"
+                                        >
+                                            Open options
+                                        </button>
                                         <small
                                             v-if="sumChipDuplicateMessages[answerKey(currentScreen.key, question.id)]"
                                             class="sum-chip-input-hint warning"
@@ -515,6 +524,59 @@
                 </footer>
             </article>
         </section>
+
+        <Teleport to="body">
+            <Transition name="live-welcome-modal">
+                <div
+                    v-if="activeSumChipOptions"
+                    class="live-welcome-backdrop"
+                    @click.self="closeSumChipOptions"
+                >
+                    <section
+                        class="sum-chip-options-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="sum-chip-options-title"
+                    >
+                        <header class="sum-chip-options-header">
+                            <div>
+                                <span class="detail-meta">Chip options</span>
+                                <h2 id="sum-chip-options-title">{{ activeSumChipOptions.question.label || 'Choose chips' }}</h2>
+                            </div>
+                            <button
+                                type="button"
+                                title="Close options"
+                                aria-label="Close options"
+                                @click="closeSumChipOptions"
+                            >
+                                <X :size="20" />
+                            </button>
+                        </header>
+                        <div class="sum-chip-options-groups">
+                            <section
+                                v-for="group in activeSumChipOptions.question.optionGroups"
+                                :key="group.id"
+                                class="sum-chip-options-group"
+                            >
+                                <h3>{{ group.header }}</h3>
+                                <div class="sum-chip-option-list">
+                                    <button
+                                        v-for="chip in group.chips"
+                                        :key="chip"
+                                        class="sum-chip-option"
+                                        :class="{ selected: isSumChipSelected(activeSumChipOptions.key, chip) }"
+                                        type="button"
+                                        @click="selectSumChipOption(activeSumChipOptions.key, chip)"
+                                    >
+                                        {{ chip }}
+                                    </button>
+                                </div>
+                            </section>
+                        </div>
+                    </section>
+                </div>
+            </Transition>
+        </Teleport>
     </main>
 </template>
 
@@ -581,6 +643,13 @@ type LiveQuestion = {
     label: string;
     placeholder: string;
     inputType: QuestionInputType;
+    optionGroups: SumChipOptionGroup[];
+};
+
+type SumChipOptionGroup = {
+    id: string;
+    header: string;
+    chips: string[];
 };
 
 type LiveAnswerField = {
@@ -588,12 +657,19 @@ type LiveAnswerField = {
     placeholder: string;
 };
 
+type ImageSize = 'full' | 'large' | 'medium' | 'small';
+type ImageAspectRatio = 'original' | '1:1' | '4:3' | '3:4' | '16:9' | '21:9';
+type ImageFit = 'cover' | 'contain';
+
 type LiveBlock = {
     id: string;
     type: BlockType;
     content: string;
     imageUrl: string;
     caption: string;
+    imageSize: ImageSize;
+    imageAspectRatio: ImageAspectRatio;
+    imageFit: ImageFit;
     questions: LiveQuestion[];
     answerFields: LiveAnswerField[];
     previousAnswerKey: string;
@@ -651,6 +727,7 @@ const answers = reactive<Record<string, AnswerValue>>({});
 const sumChipInputDrafts = reactive<Record<string, string>>({});
 const sumChipDuplicateMessages = reactive<Record<string, string>>({});
 const sumChipViewModes = reactive<Record<string, 'chips' | 'list'>>({});
+const activeSumChipOptions = ref<{ key: string; question: LiveQuestion } | null>(null);
 const activeInstance = ref<WalkthroughInstance | null>(null);
 const newInstanceTitle = ref('');
 const creatingInstance = ref(false);
@@ -807,6 +884,9 @@ function createEmptyScreen(): LiveScreen {
                 content: 'This step-through is ready, but it does not have page content yet.',
                 imageUrl: '',
                 caption: '',
+                imageSize: 'full',
+                imageAspectRatio: 'original',
+                imageFit: 'cover',
                 questions: [],
                 answerFields: [],
                 previousAnswerKey: '',
@@ -831,6 +911,9 @@ function normalizeBlocks(value: unknown): LiveBlock[] {
             content: typeof block.content === 'string' ? block.content : '',
             imageUrl: typeof block.imageUrl === 'string' ? block.imageUrl : '',
             caption: typeof block.caption === 'string' ? block.caption : '',
+            imageSize: normalizeImageSize(block.imageSize),
+            imageAspectRatio: normalizeImageAspectRatio(block.imageAspectRatio),
+            imageFit: normalizeImageFit(block.imageFit),
             questions: normalizeQuestions(block.questions),
             answerFields: normalizeAnswerFields(block.answerFields),
             previousAnswerKey: typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
@@ -856,7 +939,35 @@ function normalizeQuestions(value: unknown): LiveQuestion[] {
             label: typeof question.label === 'string' ? question.label : 'Question',
             placeholder: typeof question.placeholder === 'string' ? question.placeholder : 'Answer',
             inputType: normalizeInputType(question.inputType),
+            optionGroups: normalizeSumChipOptionGroups(question.optionGroups),
         }));
+}
+
+function normalizeSumChipOptionGroups(value: unknown): SumChipOptionGroup[] {
+    const groups = Array.isArray(value) ? value : defaultSumChipOptionGroups();
+
+    return groups
+        .filter((group): group is Partial<SumChipOptionGroup> => Boolean(group && typeof group === 'object'))
+        .map((group, index) => {
+            const chips = Array.isArray(group.chips)
+                ? group.chips.filter((chip): chip is string => typeof chip === 'string' && Boolean(chip.trim()))
+                : [];
+
+            return {
+                id: typeof group.id === 'string' ? group.id : `option-group-${index}`,
+                header: typeof group.header === 'string' && group.header.trim() ? group.header.trim() : `Group ${index + 1}`,
+                chips: uniqueSumChips(chips),
+            };
+        })
+        .filter((group) => group.chips.length);
+}
+
+function defaultSumChipOptionGroups(): SumChipOptionGroup[] {
+    return [
+        { id: 'food', header: 'Food', chips: ['pizza', 'salmon', 'bread'] },
+        { id: 'emotions', header: 'Emotions', chips: ['fear', 'hate', 'love'] },
+        { id: 'wildlife', header: 'Wildlife', chips: ['birds', 'bears', 'deer'] },
+    ];
 }
 
 function normalizeAnswerFields(value: unknown): LiveAnswerField[] {
@@ -889,6 +1000,67 @@ function normalizeBlockType(value: unknown): BlockType {
     }
 
     return 'content';
+}
+
+function normalizeImageSize(value: unknown): ImageSize {
+    if (value === 'full' || value === 'large' || value === 'medium' || value === 'small') {
+        return value;
+    }
+
+    return 'full';
+}
+
+function normalizeImageAspectRatio(value: unknown): ImageAspectRatio {
+    if (value === 'original' || value === '1:1' || value === '4:3' || value === '3:4' || value === '16:9' || value === '21:9') {
+        return value;
+    }
+
+    return 'original';
+}
+
+function normalizeImageFit(value: unknown): ImageFit {
+    if (value === 'cover' || value === 'contain') {
+        return value;
+    }
+
+    return 'cover';
+}
+
+function imageBlockClasses(block: Pick<LiveBlock, 'imageAspectRatio'>) {
+    return [
+        'image-block-media',
+        {
+            'image-block-media-original': block.imageAspectRatio === 'original',
+            'image-block-media-framed': block.imageAspectRatio !== 'original',
+        },
+    ];
+}
+
+function imageBlockStyle(block: Pick<LiveBlock, 'imageSize' | 'imageAspectRatio' | 'imageFit'>) {
+    const maxWidthBySize: Record<ImageSize, string> = {
+        full: '100%',
+        large: '48rem',
+        medium: '34rem',
+        small: '22rem',
+    };
+    const aspectRatioByValue: Record<Exclude<ImageAspectRatio, 'original'>, string> = {
+        '1:1': '1 / 1',
+        '4:3': '4 / 3',
+        '3:4': '3 / 4',
+        '16:9': '16 / 9',
+        '21:9': '21 / 9',
+    };
+    const style: Record<string, string> = {
+        '--image-max-width': maxWidthBySize[normalizeImageSize(block.imageSize)],
+    };
+    const aspectRatio = normalizeImageAspectRatio(block.imageAspectRatio);
+
+    if (aspectRatio !== 'original') {
+        style.aspectRatio = aspectRatioByValue[aspectRatio];
+        style.objectFit = normalizeImageFit(block.imageFit);
+    }
+
+    return style;
 }
 
 function normalizeInputType(value: unknown): QuestionInputType {
@@ -981,6 +1153,34 @@ function removeSumChip(key: string, chipIndex: number) {
     scheduleInstanceSave();
 }
 
+function openSumChipOptions(question: LiveQuestion, key: string) {
+    activeSumChipOptions.value = {
+        key,
+        question: {
+            ...question,
+            optionGroups: question.optionGroups.length ? question.optionGroups : defaultSumChipOptionGroups(),
+        },
+    };
+}
+
+function closeSumChipOptions() {
+    activeSumChipOptions.value = null;
+}
+
+function isSumChipSelected(key: string, chip: string) {
+    return chipAnswerValue(key).some((selectedChip) => normalizeSumChip(selectedChip) === normalizeSumChip(chip));
+}
+
+function selectSumChipOption(key: string, chip: string) {
+    if (isSumChipSelected(key, chip)) {
+        return;
+    }
+
+    answers[key] = [...chipAnswerValue(key), chip.trim()];
+    sumChipDuplicateMessages[key] = '';
+    scheduleInstanceSave();
+}
+
 function hasSumChipQuestions(block: LiveBlock) {
     return block.questions.some((question) => question.inputType === 'sum-chips');
 }
@@ -1022,6 +1222,23 @@ function sumChipTotals(screenKey: string, block: LiveBlock): SumChipTotal[] {
 
 function normalizeSumChip(value: string) {
     return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function uniqueSumChips(chips: string[]) {
+    const seen = new Set<string>();
+
+    return chips
+        .map((chip) => chip.trim())
+        .filter((chip) => {
+            const normalized = normalizeSumChip(chip);
+
+            if (!normalized || seen.has(normalized)) {
+                return false;
+            }
+
+            seen.add(normalized);
+            return true;
+        });
 }
 
 function isSumChipTotalsKey(value: string) {
@@ -1318,6 +1535,7 @@ function closeMobileNav() {
 
 function handleMobileNavKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
+        closeSumChipOptions();
         closeMobileNav();
     }
 }

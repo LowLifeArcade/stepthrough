@@ -994,6 +994,11 @@ body {
     gap: 1rem;
 }
 
+.question-editor {
+    display: grid;
+    gap: 0.8rem;
+}
+
 .multi-answer-block-fields {
     display: grid;
     gap: 1rem;
@@ -1028,6 +1033,19 @@ body {
     object-fit: cover;
 }
 
+.image-display-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(12rem, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+@media (max-width: 700px) {
+    .image-display-controls {
+        grid-template-columns: 1fr;
+    }
+}
+
 .answer-field-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1051,6 +1069,22 @@ body {
 
 .question-row {
     grid-template-columns: minmax(14rem, 1fr) minmax(14rem, 1fr) minmax(12rem, 16rem) auto;
+}
+
+.sum-chip-options-editor {
+    display: grid;
+    gap: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.8rem;
+    background: #fffdf8;
+    padding: 1rem;
+}
+
+.sum-chip-option-group-editor {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.65fr) minmax(16rem, 1fr) auto;
+    gap: 0.8rem;
+    align-items: center;
 }
 
 .step-progress-chip {
@@ -1269,11 +1303,23 @@ body {
     padding: 1.2rem;
 }
 
-.wizard-preview-block img {
-    width: 100%;
-    max-height: 34rem;
+.wizard-preview-block img.image-block-media,
+.live-block-image img.image-block-media {
+    display: block;
+    width: min(100%, var(--image-max-width, 100%));
     border-radius: 0.6rem;
-    object-fit: cover;
+}
+
+.wizard-preview-block img.image-block-media-framed,
+.live-block-image img.image-block-media-framed {
+    background: var(--color-bg-2);
+}
+
+.wizard-preview-block img.image-block-media-original,
+.live-block-image img.image-block-media-original {
+    height: auto;
+    max-height: none;
+    object-fit: contain;
 }
 
 .wizard-preview-field {
@@ -1374,6 +1420,98 @@ body {
 
 .sum-chip-input-hint.warning {
     color: #8f1d1d;
+}
+
+.sum-chip-options-link {
+    justify-self: start;
+    width: fit-content;
+    color: #8f1d1d;
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 0.24rem;
+}
+
+.sum-chip-options-modal {
+    display: grid;
+    gap: 1.8rem;
+    width: min(64rem, 100%);
+    max-height: min(74rem, calc(100vh - 3.2rem));
+    overflow: auto;
+    border: 1px solid rgba(112, 83, 19, 0.2);
+    border-radius: 0.8rem;
+    background: #fffdf8;
+    padding: clamp(1.6rem, 3vw, 2.4rem);
+    box-shadow:
+        0 3rem 8rem rgba(24, 18, 10, 0.34),
+        0 0.8rem 2.4rem rgba(72, 48, 13, 0.16);
+}
+
+.sum-chip-options-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.sum-chip-options-header h2 {
+    color: #342619;
+    font-size: clamp(2.4rem, 4vw, 3.8rem);
+    line-height: 1.05;
+}
+
+.sum-chip-options-header button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.8rem;
+    height: 3.8rem;
+    border: 1px solid rgba(89, 66, 16, 0.22);
+    border-radius: 0.7rem;
+    background: white;
+    color: #342619;
+    flex: 0 0 auto;
+}
+
+.sum-chip-options-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.8rem;
+}
+
+.sum-chip-options-group {
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+}
+
+.sum-chip-options-group h3 {
+    color: #342619;
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.sum-chip-option-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.sum-chip-option {
+    min-height: 3.4rem;
+    border: 1px solid rgba(89, 66, 16, 0.2);
+    border-radius: 0.7rem;
+    background: white;
+    color: #342619;
+    font-size: 1.45rem;
+    font-weight: 850;
+    padding: 0.55rem 0.9rem;
+}
+
+.sum-chip-option.selected {
+    border-color: #2f80d8;
+    box-shadow: 0 0 0 1px #2f80d8;
+    color: #1f64ad;
 }
 
 .wizard-preview-previous-answer {
@@ -2447,13 +2585,6 @@ body {
     gap: 0.8rem;
 }
 
-.live-block-image img {
-    width: 100%;
-    max-height: 38rem;
-    border-radius: 0.6rem;
-    object-fit: cover;
-}
-
 .live-field {
     display: grid;
     gap: 0.6rem;
@@ -2802,9 +2933,14 @@ body {
     .block-row,
     .step-main-grid,
     .question-row,
+    .sum-chip-option-group-editor,
     .answer-field-row,
     .previous-answer-fields,
     .review-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sum-chip-options-groups {
         grid-template-columns: 1fr;
     }
 

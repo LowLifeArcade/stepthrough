@@ -613,46 +613,131 @@
                                                                 type="text"
                                                                 placeholder="Optional image caption"
                                                             />
+                                                            <div class="image-display-controls">
+                                                                <label class="field">
+                                                                    <span class="field-label">Size</span>
+                                                                    <select
+                                                                        v-model="block.imageSize"
+                                                                        class="text-input compact-select"
+                                                                    >
+                                                                        <option value="full">Full width</option>
+                                                                        <option value="large">Large</option>
+                                                                        <option value="medium">Medium</option>
+                                                                        <option value="small">Small</option>
+                                                                    </select>
+                                                                </label>
+                                                                <label class="field">
+                                                                    <span class="field-label">Aspect ratio</span>
+                                                                    <select
+                                                                        v-model="block.imageAspectRatio"
+                                                                        class="text-input compact-select"
+                                                                    >
+                                                                        <option value="original">Keep original</option>
+                                                                        <option value="1:1">Square</option>
+                                                                        <option value="4:3">4:3</option>
+                                                                        <option value="3:4">3:4</option>
+                                                                        <option value="16:9">16:9</option>
+                                                                        <option value="21:9">21:9</option>
+                                                                    </select>
+                                                                </label>
+                                                                <label
+                                                                    v-if="block.imageAspectRatio !== 'original'"
+                                                                    class="field"
+                                                                >
+                                                                    <span class="field-label">Fit</span>
+                                                                    <select
+                                                                        v-model="block.imageFit"
+                                                                        class="text-input compact-select"
+                                                                    >
+                                                                        <option value="cover">Crop to fill</option>
+                                                                        <option value="contain">Fit inside</option>
+                                                                    </select>
+                                                                </label>
+                                                            </div>
                                                         </template>
                                                         <template v-else-if="block.type === 'questions'">
                                                             <div class="question-block-fields">
-                                                                <article
+                                                                <div
                                                                     v-for="(question, questionIndex) in block.questions"
                                                                     :key="question.id"
-                                                                    class="question-row"
+                                                                    class="question-editor"
                                                                 >
-                                                                    <input
-                                                                        v-model="question.label"
-                                                                        class="text-input"
-                                                                        type="text"
-                                                                        placeholder="Question"
-                                                                    />
-                                                                    <input
-                                                                        v-model="question.placeholder"
-                                                                        class="text-input"
-                                                                        type="text"
-                                                                        placeholder="Input placeholder"
-                                                                    />
-                                                                    <select
-                                                                        v-model="question.inputType"
-                                                                        class="text-input compact-select"
+                                                                    <article class="question-row">
+                                                                        <input
+                                                                            v-model="question.label"
+                                                                            class="text-input"
+                                                                            type="text"
+                                                                            placeholder="Question"
+                                                                        />
+                                                                        <input
+                                                                            v-model="question.placeholder"
+                                                                            class="text-input"
+                                                                            type="text"
+                                                                            placeholder="Input placeholder"
+                                                                        />
+                                                                        <select
+                                                                            v-model="question.inputType"
+                                                                            class="text-input compact-select"
+                                                                            @change="syncQuestionInputType(question)"
+                                                                        >
+                                                                            <option value="text">Short text</option>
+                                                                            <option value="textarea">Long text</option>
+                                                                            <option value="sum-chips">Sum chips</option>
+                                                                            <option value="number">Number</option>
+                                                                            <option value="date">Date</option>
+                                                                        </select>
+                                                                        <button
+                                                                            class="icon-button"
+                                                                            type="button"
+                                                                            title="Remove question"
+                                                                            aria-label="Remove question"
+                                                                            @click="removeQuestion(block, questionIndex)"
+                                                                        >
+                                                                            <Trash2 :size="18" />
+                                                                        </button>
+                                                                    </article>
+                                                                    <div
+                                                                        v-if="question.inputType === 'sum-chips'"
+                                                                        class="sum-chip-options-editor"
                                                                     >
-                                                                        <option value="text">Short text</option>
-                                                                        <option value="textarea">Long text</option>
-                                                                        <option value="sum-chips">Sum chips</option>
-                                                                        <option value="number">Number</option>
-                                                                        <option value="date">Date</option>
-                                                                    </select>
-                                                                    <button
-                                                                        class="icon-button"
-                                                                        type="button"
-                                                                        title="Remove question"
-                                                                        aria-label="Remove question"
-                                                                        @click="removeQuestion(block, questionIndex)"
-                                                                    >
-                                                                        <Trash2 :size="18" />
-                                                                    </button>
-                                                                </article>
+                                                                        <article
+                                                                            v-for="(group, groupIndex) in question.optionGroups"
+                                                                            :key="group.id"
+                                                                            class="sum-chip-option-group-editor"
+                                                                        >
+                                                                            <input
+                                                                                v-model="group.header"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Group header"
+                                                                            />
+                                                                            <input
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="pizza, salmon, bread"
+                                                                                :value="sumChipGroupChipsText(group)"
+                                                                                @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                            />
+                                                                            <button
+                                                                                class="icon-button"
+                                                                                type="button"
+                                                                                title="Remove option group"
+                                                                                aria-label="Remove option group"
+                                                                                @click="removeSumChipOptionGroup(question, groupIndex)"
+                                                                            >
+                                                                                <Trash2 :size="18" />
+                                                                            </button>
+                                                                        </article>
+                                                                        <button
+                                                                            class="secondary-button add-row-button"
+                                                                            type="button"
+                                                                            @click="addSumChipOptionGroup(question)"
+                                                                        >
+                                                                            <Plus :size="18" />
+                                                                            Add option group
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
                                                                 <button
                                                                     class="secondary-button add-row-button"
                                                                     type="button"
@@ -816,6 +901,8 @@
                                                             v-if="block.imageUrl"
                                                             :src="block.imageUrl"
                                                             :alt="block.caption || page.title"
+                                                            :class="imageBlockClasses(block)"
+                                                            :style="imageBlockStyle(block)"
                                                         />
                                                         <p v-if="block.caption">{{ block.caption }}</p>
                                                     </template>
@@ -1152,45 +1239,131 @@
                                                                     type="text"
                                                                     placeholder="Optional image caption"
                                                                 />
+                                                                <div class="image-display-controls">
+                                                                    <label class="field">
+                                                                        <span class="field-label">Size</span>
+                                                                        <select
+                                                                            v-model="block.imageSize"
+                                                                            class="text-input compact-select"
+                                                                        >
+                                                                            <option value="full">Full width</option>
+                                                                            <option value="large">Large</option>
+                                                                            <option value="medium">Medium</option>
+                                                                            <option value="small">Small</option>
+                                                                        </select>
+                                                                    </label>
+                                                                    <label class="field">
+                                                                        <span class="field-label">Aspect ratio</span>
+                                                                        <select
+                                                                            v-model="block.imageAspectRatio"
+                                                                            class="text-input compact-select"
+                                                                        >
+                                                                            <option value="original">Keep original</option>
+                                                                            <option value="1:1">Square</option>
+                                                                            <option value="4:3">4:3</option>
+                                                                            <option value="3:4">3:4</option>
+                                                                            <option value="16:9">16:9</option>
+                                                                            <option value="21:9">21:9</option>
+                                                                        </select>
+                                                                    </label>
+                                                                    <label
+                                                                        v-if="block.imageAspectRatio !== 'original'"
+                                                                        class="field"
+                                                                    >
+                                                                        <span class="field-label">Fit</span>
+                                                                        <select
+                                                                            v-model="block.imageFit"
+                                                                            class="text-input compact-select"
+                                                                        >
+                                                                            <option value="cover">Crop to fill</option>
+                                                                            <option value="contain">Fit inside</option>
+                                                                        </select>
+                                                                    </label>
+                                                                </div>
                                                             </template>
                                                             <template v-else-if="block.type === 'questions'">
                                                                 <div class="question-block-fields">
-                                                                    <article
+                                                                    <div
                                                                         v-for="(question, questionIndex) in block.questions"
                                                                         :key="question.id"
-                                                                        class="question-row"
+                                                                        class="question-editor"
                                                                     >
-                                                                        <input
-                                                                            v-model="question.label"
-                                                                            class="text-input"
-                                                                            type="text"
-                                                                            placeholder="Question"
-                                                                        />
-                                                                        <input
-                                                                            v-model="question.placeholder"
-                                                                            class="text-input"
-                                                                            type="text"
-                                                                            placeholder="Input placeholder"
-                                                                        />
-                                                                        <select
-                                                                            v-model="question.inputType"
-                                                                            class="text-input compact-select"
+                                                                        <article class="question-row">
+                                                                            <input
+                                                                                v-model="question.label"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Question"
+                                                                            />
+                                                                            <input
+                                                                                v-model="question.placeholder"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Input placeholder"
+                                                                            />
+                                                                            <select
+                                                                                v-model="question.inputType"
+                                                                                class="text-input compact-select"
+                                                                                @change="syncQuestionInputType(question)"
+                                                                            >
+                                                                                <option value="text">Short text</option>
+                                                                                <option value="textarea">Long text</option>
+                                                                                <option value="sum-chips">Sum chips</option>
+                                                                                <option value="number">Number</option>
+                                                                                <option value="date">Date</option>
+                                                                            </select>
+                                                                            <button
+                                                                                class="icon-button"
+                                                                                type="button"
+                                                                                title="Remove question"
+                                                                                aria-label="Remove question"
+                                                                                @click="removeQuestion(block, questionIndex)"
+                                                                            >
+                                                                                <Trash2 :size="18" />
+                                                                            </button>
+                                                                        </article>
+                                                                        <div
+                                                                            v-if="question.inputType === 'sum-chips'"
+                                                                            class="sum-chip-options-editor"
                                                                         >
-                                                                            <option value="text">Short text</option>
-                                                                            <option value="textarea">Long text</option>
-                                                                            <option value="number">Number</option>
-                                                                            <option value="date">Date</option>
-                                                                        </select>
-                                                                        <button
-                                                                            class="icon-button"
-                                                                            type="button"
-                                                                            title="Remove question"
-                                                                            aria-label="Remove question"
-                                                                            @click="removeQuestion(block, questionIndex)"
-                                                                        >
-                                                                            <Trash2 :size="18" />
-                                                                        </button>
-                                                                    </article>
+                                                                            <article
+                                                                                v-for="(group, groupIndex) in question.optionGroups"
+                                                                                :key="group.id"
+                                                                                class="sum-chip-option-group-editor"
+                                                                            >
+                                                                                <input
+                                                                                    v-model="group.header"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Group header"
+                                                                                />
+                                                                                <input
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="pizza, salmon, bread"
+                                                                                    :value="sumChipGroupChipsText(group)"
+                                                                                    @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                                />
+                                                                                <button
+                                                                                    class="icon-button"
+                                                                                    type="button"
+                                                                                    title="Remove option group"
+                                                                                    aria-label="Remove option group"
+                                                                                    @click="removeSumChipOptionGroup(question, groupIndex)"
+                                                                                >
+                                                                                    <Trash2 :size="18" />
+                                                                                </button>
+                                                                            </article>
+                                                                            <button
+                                                                                class="secondary-button add-row-button"
+                                                                                type="button"
+                                                                                @click="addSumChipOptionGroup(question)"
+                                                                            >
+                                                                                <Plus :size="18" />
+                                                                                Add option group
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
                                                                     <button
                                                                         class="secondary-button add-row-button"
                                                                         type="button"
@@ -1365,6 +1538,8 @@
                                                             v-if="block.imageUrl"
                                                             :src="block.imageUrl"
                                                             :alt="block.caption || subPage.title"
+                                                            :class="imageBlockClasses(block)"
+                                                            :style="imageBlockStyle(block)"
                                                         />
                                                         <p v-if="block.caption">{{ block.caption }}</p>
                                                     </template>
@@ -1833,6 +2008,9 @@ type OpenStepthrough = {
 type ProgressButton = 'start' | 'next' | 'done';
 type BlockType = 'content' | 'questions' | 'multi-answer' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
 type QuestionInputType = 'text' | 'textarea' | 'sum-chips' | 'number' | 'date';
+type ImageSize = 'full' | 'large' | 'medium' | 'small';
+type ImageAspectRatio = 'original' | '1:1' | '4:3' | '3:4' | '16:9' | '21:9';
+type ImageFit = 'cover' | 'contain';
 
 type WizardBlock = {
     id: string;
@@ -1840,6 +2018,9 @@ type WizardBlock = {
     content: string;
     imageUrl: string;
     caption: string;
+    imageSize: ImageSize;
+    imageAspectRatio: ImageAspectRatio;
+    imageFit: ImageFit;
     opensInModal: boolean;
     questions: WizardQuestion[];
     answerFields: MultiAnswerField[];
@@ -1854,6 +2035,13 @@ type WizardQuestion = {
     label: string;
     placeholder: string;
     inputType: QuestionInputType;
+    optionGroups: SumChipOptionGroup[];
+};
+
+type SumChipOptionGroup = {
+    id: string;
+    header: string;
+    chips: string[];
 };
 
 type MultiAnswerField = {
@@ -2098,6 +2286,7 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
         label,
         placeholder,
         inputType,
+        optionGroups: inputType === 'sum-chips' ? defaultSumChipOptionGroups() : [],
     };
 }
 
@@ -2128,6 +2317,9 @@ function createBlock(type: BlockType): WizardBlock {
         content: contentByType[type],
         imageUrl: type === 'image' ? 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94' : '',
         caption: type === 'image' ? 'A visual reference for this step.' : '',
+        imageSize: 'full',
+        imageAspectRatio: 'original',
+        imageFit: 'cover',
         opensInModal: type === 'resource',
         questions: type === 'questions' ? [createQuestion()] : [],
         answerFields: type === 'multi-answer' ? [createAnswerField()] : [],
@@ -2382,6 +2574,32 @@ function removeQuestion(target: WizardBlock, index: number) {
     target.questions.splice(index, 1);
 }
 
+function syncQuestionInputType(question: WizardQuestion) {
+    if (question.inputType === 'sum-chips' && !question.optionGroups.length) {
+        question.optionGroups = defaultSumChipOptionGroups();
+    }
+}
+
+function addSumChipOptionGroup(question: WizardQuestion) {
+    question.optionGroups.push({
+        id: createId(),
+        header: `Group ${question.optionGroups.length + 1}`,
+        chips: [],
+    });
+}
+
+function removeSumChipOptionGroup(question: WizardQuestion, groupIndex: number) {
+    question.optionGroups.splice(groupIndex, 1);
+}
+
+function sumChipGroupChipsText(group: SumChipOptionGroup) {
+    return group.chips.join(', ');
+}
+
+function setSumChipGroupChips(group: SumChipOptionGroup, value: string) {
+    group.chips = uniqueSumChips(value.split(','));
+}
+
 function addAnswerField(target: WizardBlock) {
     target.answerFields.push(createAnswerField(`Answer ${target.answerFields.length + 1}`));
 }
@@ -2462,6 +2680,9 @@ function syncBlockType(block: WizardBlock) {
     block.content = block.type === 'image' ? '' : block.content || defaults.content;
     block.imageUrl = block.type === 'image' ? block.imageUrl || defaults.imageUrl : '';
     block.caption = block.type === 'image' ? block.caption || defaults.caption : '';
+    block.imageSize = block.type === 'image' ? normalizeImageSize(block.imageSize) : defaults.imageSize;
+    block.imageAspectRatio = block.type === 'image' ? normalizeImageAspectRatio(block.imageAspectRatio) : defaults.imageAspectRatio;
+    block.imageFit = block.type === 'image' ? normalizeImageFit(block.imageFit) : defaults.imageFit;
     block.opensInModal = block.type === 'resource' ? block.opensInModal : false;
     block.questions = block.type === 'questions' ? block.questions.length ? block.questions : defaults.questions : [];
     block.answerFields = block.type === 'multi-answer' ? block.answerFields.length ? block.answerFields : defaults.answerFields : [];
@@ -2544,6 +2765,9 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 content: normalizeLegacyFramedContent(type, block.content, block.hasFrame),
                 imageUrl: typeof block.imageUrl === 'string' ? block.imageUrl : '',
                 caption: typeof block.caption === 'string' ? block.caption : '',
+                imageSize: normalizeImageSize(block.imageSize),
+                imageAspectRatio: normalizeImageAspectRatio(block.imageAspectRatio),
+                imageFit: normalizeImageFit(block.imageFit),
                 opensInModal: Boolean(block.opensInModal),
                 questions: type === 'questions' ? questions.length ? questions : [createQuestion()] : [],
                 answerFields: type === 'multi-answer' ? answerFields.length ? answerFields : [createAnswerField()] : [],
@@ -2580,6 +2804,9 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
                 label: typeof question.label === 'string' ? question.label : 'Question',
                 placeholder: typeof question.placeholder === 'string' ? question.placeholder : 'Answer',
                 inputType: normalizeInputType(question.inputType),
+                optionGroups: normalizeInputType(question.inputType) === 'sum-chips'
+                    ? normalizeSumChipOptionGroups(question.optionGroups)
+                    : [],
             }));
     }
 
@@ -2588,6 +2815,50 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
     }
 
     return [];
+}
+
+function defaultSumChipOptionGroups(): SumChipOptionGroup[] {
+    return [
+        { id: createId(), header: 'Food', chips: ['pizza', 'salmon', 'bread'] },
+        { id: createId(), header: 'Emotions', chips: ['fear', 'hate', 'love'] },
+        { id: createId(), header: 'Wildlife', chips: ['birds', 'bears', 'deer'] },
+    ];
+}
+
+function normalizeSumChipOptionGroups(value: unknown): SumChipOptionGroup[] {
+    const groups = Array.isArray(value) ? value : defaultSumChipOptionGroups();
+
+    return groups
+        .filter((group): group is Partial<SumChipOptionGroup> => Boolean(group && typeof group === 'object'))
+        .map((group, index) => {
+            const chips = Array.isArray(group.chips)
+                ? group.chips.filter((chip): chip is string => typeof chip === 'string' && Boolean(chip.trim()))
+                : [];
+
+            return {
+                id: typeof group.id === 'string' ? group.id : createId(),
+                header: typeof group.header === 'string' && group.header.trim() ? group.header.trim() : `Group ${index + 1}`,
+                chips: uniqueSumChips(chips),
+            };
+        })
+        .filter((group) => group.chips.length);
+}
+
+function uniqueSumChips(chips: string[]) {
+    const seen = new Set<string>();
+
+    return chips
+        .map((chip) => chip.trim())
+        .filter((chip) => {
+            const normalized = chip.replace(/\s+/g, ' ').toLocaleLowerCase();
+
+            if (!normalized || seen.has(normalized)) {
+                return false;
+            }
+
+            seen.add(normalized);
+            return true;
+        });
 }
 
 function normalizeAnswerFields(value: unknown): MultiAnswerField[] {
@@ -2620,6 +2891,67 @@ function normalizeBlockType(value: unknown): BlockType {
     }
 
     return 'content';
+}
+
+function normalizeImageSize(value: unknown): ImageSize {
+    if (value === 'full' || value === 'large' || value === 'medium' || value === 'small') {
+        return value;
+    }
+
+    return 'full';
+}
+
+function normalizeImageAspectRatio(value: unknown): ImageAspectRatio {
+    if (value === 'original' || value === '1:1' || value === '4:3' || value === '3:4' || value === '16:9' || value === '21:9') {
+        return value;
+    }
+
+    return 'original';
+}
+
+function normalizeImageFit(value: unknown): ImageFit {
+    if (value === 'cover' || value === 'contain') {
+        return value;
+    }
+
+    return 'cover';
+}
+
+function imageBlockClasses(block: Pick<WizardBlock, 'imageAspectRatio'>) {
+    return [
+        'image-block-media',
+        {
+            'image-block-media-original': block.imageAspectRatio === 'original',
+            'image-block-media-framed': block.imageAspectRatio !== 'original',
+        },
+    ];
+}
+
+function imageBlockStyle(block: Pick<WizardBlock, 'imageSize' | 'imageAspectRatio' | 'imageFit'>) {
+    const maxWidthBySize: Record<ImageSize, string> = {
+        full: '100%',
+        large: '48rem',
+        medium: '34rem',
+        small: '22rem',
+    };
+    const aspectRatioByValue: Record<Exclude<ImageAspectRatio, 'original'>, string> = {
+        '1:1': '1 / 1',
+        '4:3': '4 / 3',
+        '3:4': '3 / 4',
+        '16:9': '16 / 9',
+        '21:9': '21 / 9',
+    };
+    const style: Record<string, string> = {
+        '--image-max-width': maxWidthBySize[normalizeImageSize(block.imageSize)],
+    };
+    const aspectRatio = normalizeImageAspectRatio(block.imageAspectRatio);
+
+    if (aspectRatio !== 'original') {
+        style.aspectRatio = aspectRatioByValue[aspectRatio];
+        style.objectFit = normalizeImageFit(block.imageFit);
+    }
+
+    return style;
 }
 
 function normalizeInputType(value: unknown): QuestionInputType {
