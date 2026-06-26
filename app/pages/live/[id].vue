@@ -1278,7 +1278,7 @@ function isSumChipSelected(key: string, chip: string) {
 function toggleSumChipOption(key: string, chip: string) {
     if (isSumChipSelected(key, chip)) {
         let idx = answers[key]?.indexOf(chip)
-        if (idx != null && idx > 0) {
+        if (idx != null && idx > -1) {
             answers[key] = (answers[key] as Array<string>)?.toSpliced(idx, 1);
         }
 
