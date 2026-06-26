@@ -383,12 +383,16 @@
                                     <span>{{ question.label }}</span>
                                     <template v-if="question.inputType === 'sum-chips'">
                                         <input
+                                            v-if="question.sumChipShowInput"
                                             v-model="sumChipInputDrafts[answerKey(currentScreen.key, question.id)]"
                                             type="text"
                                             :placeholder="question.placeholder"
                                             @keydown="handleSumChipKeydown($event, answerKey(currentScreen.key, question.id))"
                                         />
-                                        <small class="sum-chip-input-hint">
+                                        <small
+                                            v-if="question.sumChipShowInput"
+                                            class="sum-chip-input-hint"
+                                        >
                                             Press Tab or Enter to add a chip. Each field keeps one of each answer.
                                         </small>
                                         <button
@@ -690,6 +694,7 @@ type LiveQuestion = {
     placeholder: string;
     inputType: QuestionInputType;
     useGlobalSumChipOptions: boolean;
+    sumChipShowInput: boolean;
     optionGroups: SumChipOptionGroup[];
 };
 
@@ -999,6 +1004,8 @@ function normalizeQuestions(value: unknown): LiveQuestion[] {
             inputType: normalizeInputType(question.inputType),
             useGlobalSumChipOptions:
                 normalizeInputType(question.inputType) === 'sum-chips' && Boolean(question.useGlobalSumChipOptions),
+            sumChipShowInput:
+                normalizeInputType(question.inputType) === 'sum-chips' ? question.sumChipShowInput !== false : true,
             optionGroups: normalizeSumChipOptionGroups(question.optionGroups),
         }));
 }

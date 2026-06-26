@@ -744,17 +744,24 @@
                                                                         class="sum-chip-options-editor"
                                                                     >
                                                                         <label class="sum-chip-global-toggle">
-                                                                            <input
-                                                                                v-model="question.useGlobalSumChipOptions"
-                                                                                type="checkbox"
-                                                                                @change="syncQuestionGlobalSumChipOptions(block, question)"
-                                                                            />
-                                                                            <span>Use global options</span>
-                                                                        </label>
-                                                                        <article
-                                                                            v-for="(group, groupIndex) in question.optionGroups"
-                                                                            :key="group.id"
-                                                                            class="sum-chip-option-group-editor"
+                                                                             <input
+                                                                                 v-model="question.useGlobalSumChipOptions"
+                                                                                 type="checkbox"
+                                                                                 @change="syncQuestionGlobalSumChipOptions(block, question)"
+                                                                             />
+                                                                             <span>Use global options</span>
+                                                                         </label>
+                                                                         <label class="sum-chip-global-toggle">
+                                                                             <input
+                                                                                 v-model="question.sumChipShowInput"
+                                                                                 type="checkbox"
+                                                                             />
+                                                                             <span>Show input field</span>
+                                                                         </label>
+                                                                         <article
+                                                                             v-for="(group, groupIndex) in question.optionGroups"
+                                                                             :key="group.id"
+                                                                             class="sum-chip-option-group-editor"
                                                                         >
                                                                             <input
                                                                                 v-model="group.header"
@@ -1421,17 +1428,24 @@
                                                                             class="sum-chip-options-editor"
                                                                         >
                                                                             <label class="sum-chip-global-toggle">
-                                                                                <input
-                                                                                    v-model="question.useGlobalSumChipOptions"
-                                                                                    type="checkbox"
-                                                                                    @change="syncQuestionGlobalSumChipOptions(block, question)"
-                                                                                />
-                                                                                <span>Use global options</span>
-                                                                            </label>
-                                                                            <article
-                                                                                v-for="(group, groupIndex) in question.optionGroups"
-                                                                                :key="group.id"
-                                                                                class="sum-chip-option-group-editor"
+                                                                                 <input
+                                                                                     v-model="question.useGlobalSumChipOptions"
+                                                                                     type="checkbox"
+                                                                                     @change="syncQuestionGlobalSumChipOptions(block, question)"
+                                                                                 />
+                                                                                 <span>Use global options</span>
+                                                                             </label>
+                                                                             <label class="sum-chip-global-toggle">
+                                                                                 <input
+                                                                                     v-model="question.sumChipShowInput"
+                                                                                     type="checkbox"
+                                                                                 />
+                                                                                 <span>Show input field</span>
+                                                                             </label>
+                                                                             <article
+                                                                                 v-for="(group, groupIndex) in question.optionGroups"
+                                                                                 :key="group.id"
+                                                                                 class="sum-chip-option-group-editor"
                                                                             >
                                                                                 <input
                                                                                     v-model="group.header"
@@ -2139,6 +2153,7 @@ type WizardQuestion = {
     placeholder: string;
     inputType: QuestionInputType;
     useGlobalSumChipOptions: boolean;
+    sumChipShowInput: boolean;
     optionGroups: SumChipOptionGroup[];
 };
 
@@ -2391,6 +2406,7 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
         placeholder,
         inputType,
         useGlobalSumChipOptions: false,
+        sumChipShowInput: true,
         optionGroups: inputType === 'sum-chips' ? defaultSumChipOptionGroups() : [],
     };
 }
@@ -2948,6 +2964,8 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
                 inputType: normalizeInputType(question.inputType),
                 useGlobalSumChipOptions:
                     normalizeInputType(question.inputType) === 'sum-chips' && Boolean(question.useGlobalSumChipOptions),
+                sumChipShowInput:
+                    normalizeInputType(question.inputType) === 'sum-chips' ? question.sumChipShowInput !== false : true,
                 optionGroups: normalizeInputType(question.inputType) === 'sum-chips'
                     ? normalizeSumChipOptionGroups(question.optionGroups)
                     : [],
