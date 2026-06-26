@@ -328,14 +328,51 @@
                                 <p v-if="block.caption">{{ block.caption }}</p>
                             </template>
                             <template v-else-if="block.type === 'questions'">
-                                <label
+                                <div
                                     v-for="question in block.questions"
                                     :key="question.id"
                                     class="live-field"
                                 >
                                     <span>{{ question.label }}</span>
+                                    <template v-if="question.inputType === 'sum-chips'">
+                                        <input
+                                            v-model="sumChipInputDrafts[answerKey(currentScreen.key, question.id)]"
+                                            type="text"
+                                            :placeholder="question.placeholder"
+                                            @keydown="handleSumChipKeydown($event, answerKey(currentScreen.key, question.id))"
+                                        />
+                                        <small class="sum-chip-input-hint">
+                                            Press Tab or Enter to add a chip. Each field keeps one of each answer.
+                                        </small>
+                                        <small
+                                            v-if="sumChipDuplicateMessages[answerKey(currentScreen.key, question.id)]"
+                                            class="sum-chip-input-hint warning"
+                                            aria-live="polite"
+                                        >
+                                            {{ sumChipDuplicateMessages[answerKey(currentScreen.key, question.id)] }}
+                                        </small>
+                                        <div
+                                            v-if="chipAnswerValue(answerKey(currentScreen.key, question.id)).length"
+                                            class="sum-chip-list"
+                                        >
+                                            <span
+                                                v-for="(chip, chipIndex) in chipAnswerValue(answerKey(currentScreen.key, question.id))"
+                                                :key="`${chip}-${chipIndex}`"
+                                                class="sum-chip removable"
+                                            >
+                                                {{ chip }}
+                                                <button
+                                                    type="button"
+                                                    :aria-label="`Remove ${chip}`"
+                                                    @click="removeSumChip(answerKey(currentScreen.key, question.id), chipIndex)"
+                                                >
+                                                    <X :size="14" />
+                                                </button>
+                                            </span>
+                                        </div>
+                                    </template>
                                     <textarea
-                                        v-if="question.inputType === 'textarea'"
+                                        v-else-if="question.inputType === 'textarea'"
                                         v-model="answers[answerKey(currentScreen.key, question.id)]"
                                         :placeholder="question.placeholder"
                                         @input="scheduleInstanceSave"
@@ -347,7 +384,62 @@
                                         :placeholder="question.placeholder"
                                         @input="scheduleInstanceSave"
                                     />
-                                </label>
+                                </div>
+                                <section
+                                    v-if="hasSumChipQuestions(block)"
+                                    class="sum-chip-total"
+                                    aria-label="Sum chip totals"
+                                >
+                                    <header>
+                                        <strong>Totals</strong>
+                                        <div class="sum-chip-view-toggle">
+                                            <button
+                                                type="button"
+                                                title="Chips view"
+                                                aria-label="Chips view"
+                                                :class="{ active: sumChipBlockViewMode(block.id) === 'chips' }"
+                                                @click="setSumChipBlockViewMode(block.id, 'chips')"
+                                            >
+                                                <LayoutGrid :size="16" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="List view"
+                                                aria-label="List view"
+                                                :class="{ active: sumChipBlockViewMode(block.id) === 'list' }"
+                                                @click="setSumChipBlockViewMode(block.id, 'list')"
+                                            >
+                                                <List :size="16" />
+                                            </button>
+                                        </div>
+                                    </header>
+                                    <div
+                                        v-if="sumChipTotals(currentScreen.key, block).length && sumChipBlockViewMode(block.id) === 'chips'"
+                                        class="sum-chip-total-chips"
+                                    >
+                                        <span
+                                            v-for="total in sumChipTotals(currentScreen.key, block)"
+                                            :key="total.normalized"
+                                            class="sum-chip counted"
+                                        >
+                                            {{ total.label }}
+                                            <strong>{{ total.count }}</strong>
+                                        </span>
+                                    </div>
+                                    <ul
+                                        v-else-if="sumChipTotals(currentScreen.key, block).length"
+                                        class="sum-chip-total-list"
+                                    >
+                                        <li
+                                            v-for="total in sumChipTotals(currentScreen.key, block)"
+                                            :key="total.normalized"
+                                        >
+                                            <span>{{ total.label }}</span>
+                                            <strong>{{ total.count }}</strong>
+                                        </li>
+                                    </ul>
+                                    <p v-else>No chips yet.</p>
+                                </section>
                             </template>
                             <template v-else-if="block.type === 'multi-answer'">
                                 <div
@@ -456,19 +548,22 @@ type LiveProject = {
     instances: WalkthroughInstance[];
 };
 
+type AnswerValue = string | string[];
+type SumChipTotal = { normalized: string; label: string; count: number };
+
 type WalkthroughInstance = {
     id: string;
     project_id: string;
     user_id: string;
     title: string;
-    answers: string | Record<string, string>;
+    answers: string | Record<string, AnswerValue>;
     current_screen_index: number;
     completed_at: number | null;
     created_at: number;
     updated_at: number;
 };
 
-type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
+type QuestionInputType = 'text' | 'textarea' | 'sum-chips' | 'number' | 'date';
 type BlockType =
     | 'content'
     | 'questions'
@@ -540,7 +635,7 @@ type PendingLiveAction =
           type: 'save-instance';
           projectId: string;
           instance: WalkthroughInstance;
-          answers: Record<string, string>;
+          answers: Record<string, AnswerValue>;
           currentIndex: number;
           isFinished: boolean;
       };
@@ -552,7 +647,10 @@ const route = useRoute();
 const viewMode = ref<'tiles' | 'list'>('tiles');
 const currentIndex = ref(0);
 const isFinished = ref(false);
-const answers = reactive<Record<string, string>>({});
+const answers = reactive<Record<string, AnswerValue>>({});
+const sumChipInputDrafts = reactive<Record<string, string>>({});
+const sumChipDuplicateMessages = reactive<Record<string, string>>({});
+const sumChipViewModes = reactive<Record<string, 'chips' | 'list'>>({});
 const activeInstance = ref<WalkthroughInstance | null>(null);
 const newInstanceTitle = ref('');
 const creatingInstance = ref(false);
@@ -794,7 +892,7 @@ function normalizeBlockType(value: unknown): BlockType {
 }
 
 function normalizeInputType(value: unknown): QuestionInputType {
-    if (value === 'text' || value === 'textarea' || value === 'number' || value === 'date') {
+    if (value === 'text' || value === 'textarea' || value === 'sum-chips' || value === 'number' || value === 'date') {
         return value;
     }
 
@@ -810,7 +908,156 @@ function previousAnswerValue(block: LiveBlock) {
         return '';
     }
 
-    return answers[block.previousAnswerKey] || '';
+    if (isSumChipTotalsKey(block.previousAnswerKey)) {
+        return previousSumChipTotalsValue(block.previousAnswerKey);
+    }
+
+    const value = answers[block.previousAnswerKey];
+
+    return Array.isArray(value) ? value.join(', ') : value || '';
+}
+
+function chipAnswerValue(key: string) {
+    const value = answers[key];
+    let chips: string[] = [];
+
+    if (Array.isArray(value)) {
+        chips = value.filter((chip): chip is string => typeof chip === 'string' && Boolean(chip.trim()));
+    } else if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+
+            if (Array.isArray(parsed)) {
+                chips = parsed.filter((chip): chip is string => typeof chip === 'string' && Boolean(chip.trim()));
+            }
+        } catch {
+            chips = value.trim() ? [value.trim()] : [];
+        }
+    }
+
+    const seen = new Set<string>();
+
+    return chips.filter((chip) => {
+        const normalized = normalizeSumChip(chip);
+
+        if (seen.has(normalized)) {
+            return false;
+        }
+
+        seen.add(normalized);
+        return true;
+    });
+}
+
+function handleSumChipKeydown(event: KeyboardEvent, key: string) {
+    if (event.key !== 'Tab' && event.key !== 'Enter') {
+        return;
+    }
+
+    const nextChip = sumChipInputDrafts[key]?.trim();
+
+    if (!nextChip) {
+        return;
+    }
+
+    event.preventDefault();
+    const currentChips = chipAnswerValue(key);
+
+    if (currentChips.some((chip) => normalizeSumChip(chip) === normalizeSumChip(nextChip))) {
+        sumChipDuplicateMessages[key] = `${nextChip} is already in this list.`;
+        sumChipInputDrafts[key] = '';
+        return;
+    }
+
+    answers[key] = [...currentChips, nextChip];
+    sumChipInputDrafts[key] = '';
+    sumChipDuplicateMessages[key] = '';
+    scheduleInstanceSave();
+}
+
+function removeSumChip(key: string, chipIndex: number) {
+    answers[key] = chipAnswerValue(key).filter((_, index) => index !== chipIndex);
+    sumChipDuplicateMessages[key] = '';
+    scheduleInstanceSave();
+}
+
+function hasSumChipQuestions(block: LiveBlock) {
+    return block.questions.some((question) => question.inputType === 'sum-chips');
+}
+
+function sumChipBlockViewMode(blockId: string) {
+    return sumChipViewModes[blockId] || 'chips';
+}
+
+function setSumChipBlockViewMode(blockId: string, mode: 'chips' | 'list') {
+    sumChipViewModes[blockId] = mode;
+}
+
+function sumChipTotals(screenKey: string, block: LiveBlock): SumChipTotal[] {
+    const totals = new Map<string, SumChipTotal>();
+
+    for (const question of block.questions) {
+        if (question.inputType !== 'sum-chips') {
+            continue;
+        }
+
+        for (const chip of chipAnswerValue(answerKey(screenKey, question.id))) {
+            const normalized = normalizeSumChip(chip);
+            const existing = totals.get(normalized);
+
+            if (existing) {
+                existing.count += 1;
+            } else {
+                totals.set(normalized, {
+                    normalized,
+                    label: chip.trim(),
+                    count: 1,
+                });
+            }
+        }
+    }
+
+    return [...totals.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function normalizeSumChip(value: string) {
+    return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function isSumChipTotalsKey(value: string) {
+    return value.startsWith('sum-chip-totals:');
+}
+
+function previousSumChipTotalsValue(key: string) {
+    const parsed = parseSumChipTotalsKey(key);
+
+    if (!parsed) {
+        return '';
+    }
+
+    const screen = screens.value.find((candidate) => candidate.key === parsed.screenKey);
+    const block = screen?.blocks.find((candidate) => candidate.id === parsed.blockId);
+
+    if (!screen || !block) {
+        return '';
+    }
+
+    return sumChipTotals(screen.key, block)
+        .map((total) => `${total.label} ${total.count}`)
+        .join('\n');
+}
+
+function parseSumChipTotalsKey(key: string) {
+    const parts = key.split(':');
+
+    if (parts.length !== 3 || parts[0] !== 'sum-chip-totals') {
+        return null;
+    }
+
+    return {
+        screenKey: parts[1],
+        blockId: parts[2],
+    };
 }
 
 async function createInstance() {

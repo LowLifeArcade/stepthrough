@@ -607,6 +607,7 @@
                                                                     >
                                                                         <option value="text">Short text</option>
                                                                         <option value="textarea">Long text</option>
+                                                                        <option value="sum-chips">Sum chips</option>
                                                                         <option value="number">Number</option>
                                                                         <option value="date">Date</option>
                                                                     </select>
@@ -793,8 +794,22 @@
                                                             class="wizard-preview-field"
                                                         >
                                                             <span>{{ question.label || 'Question' }}</span>
+                                                            <div
+                                                                v-if="question.inputType === 'sum-chips'"
+                                                                class="sum-chip-preview"
+                                                            >
+                                                                <input
+                                                                    disabled
+                                                                    type="text"
+                                                                    :placeholder="question.placeholder"
+                                                                />
+                                                                <div class="sum-chip-list">
+                                                                    <span class="sum-chip">Example</span>
+                                                                    <span class="sum-chip">Answer</span>
+                                                                </div>
+                                                            </div>
                                                             <textarea
-                                                                v-if="question.inputType === 'textarea'"
+                                                                v-else-if="question.inputType === 'textarea'"
                                                                 disabled
                                                                 :placeholder="question.placeholder"
                                                             ></textarea>
@@ -1728,7 +1743,7 @@ type OpenStepthrough = {
 
 type ProgressButton = 'start' | 'next' | 'done';
 type BlockType = 'content' | 'questions' | 'multi-answer' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
-type QuestionInputType = 'text' | 'textarea' | 'number' | 'date';
+type QuestionInputType = 'text' | 'textarea' | 'sum-chips' | 'number' | 'date';
 
 type WizardBlock = {
     id: string;
@@ -2463,7 +2478,7 @@ function normalizeBlockType(value: unknown): BlockType {
 }
 
 function normalizeInputType(value: unknown): QuestionInputType {
-    if (value === 'text' || value === 'textarea' || value === 'number' || value === 'date') {
+    if (value === 'text' || value === 'textarea' || value === 'sum-chips' || value === 'number' || value === 'date') {
         return value;
     }
 
@@ -2518,10 +2533,23 @@ function collectAnswerScreens(pages: WizardPage[]) {
 
 function collectBlockAnswerOptions(block: WizardBlock, screenKey: string, screenLabel: string) {
     if (block.type === 'questions') {
-        return block.questions.map((question) => ({
+        const questionOptions = block.questions.map((question) => ({
             key: `${screenKey}:${question.id}`,
             label: `${screenLabel} - ${question.label || 'Question'}`,
         }));
+        const hasSumChips = block.questions.some((question) => question.inputType === 'sum-chips');
+
+        if (!hasSumChips) {
+            return questionOptions;
+        }
+
+        return [
+            ...questionOptions,
+            {
+                key: sumChipTotalsKey(screenKey, block.id),
+                label: `${screenLabel} - ${block.sectionTitle || 'Question block'} - Sum chip totals`,
+            },
+        ];
     }
 
     if (block.type === 'multi-answer') {
@@ -2541,6 +2569,10 @@ function collectBlockAnswerOptions(block: WizardBlock, screenKey: string, screen
     }
 
     return [];
+}
+
+function sumChipTotalsKey(screenKey: string, blockId: string) {
+    return `sum-chip-totals:${screenKey}:${blockId}`;
 }
 
 function normalizeButton(value: unknown, index: number): ProgressButton {
