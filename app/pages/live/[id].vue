@@ -973,9 +973,9 @@ function normalizeSumChipOptionGroups(value: unknown, useDefaults = true): SumCh
 
 function defaultSumChipOptionGroups(): SumChipOptionGroup[] {
     return [
-        { id: 'food', header: 'Food', chips: ['pizza', 'salmon', 'bread'] },
-        { id: 'emotions', header: 'Emotions', chips: ['fear', 'hate', 'love'] },
-        { id: 'wildlife', header: 'Wildlife', chips: ['birds', 'bears', 'deer'] },
+        // { id: 'food', header: 'Food', chips: ['pizza', 'salmon', 'bread'] },
+        // { id: 'emotions', header: 'Emotions', chips: ['fear', 'hate', 'love'] },
+        // { id: 'wildlife', header: 'Wildlife', chips: ['birds', 'bears', 'deer'] },
     ];
 }
 
