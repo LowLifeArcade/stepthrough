@@ -954,6 +954,41 @@ body {
     background: #fafafa;
 }
 
+.step-page-card-header {
+    align-items: flex-start;
+}
+
+.step-page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    justify-content: flex-end;
+}
+
+.step-page-move-actions {
+    flex-wrap: nowrap;
+}
+
+.step-page-move-button {
+    width: 6.2rem;
+    min-height: 6.2rem;
+    background: var(--color-surface);
+}
+
+.step-page-progress-chip {
+    min-width: 17.4rem;
+    padding: 1.1rem 1.4rem;
+}
+
+.step-page-progress-chip span {
+    font-size: 1.45rem;
+}
+
+.step-page-progress-chip strong {
+    color: #8f1d1d;
+    font-size: 2rem;
+}
+
 .question-block-fields {
     display: grid;
     gap: 1rem;

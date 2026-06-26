@@ -947,14 +947,38 @@
                                                 :key="subPage.id"
                                                 class="step-page-card"
                                             >
-                                                <header class="block-composer-header">
+                                                <header class="block-composer-header step-page-card-header">
                                                     <div>
                                                         <span>Page {{ subIndex + 1 }}</span>
                                                         <strong>{{ subPage.title || 'Untitled page' }}</strong>
                                                     </div>
-                                                    <div class="step-progress-chip">
-                                                        <span>Navigation</span>
-                                                        <strong>{{ formatSubPageProgress(subIndex, activeStepPage.subPages.length) }}</strong>
+                                                    <div class="step-page-header-actions">
+                                                        <div class="mini-actions step-page-move-actions">
+                                                            <button
+                                                                class="icon-button step-page-move-button"
+                                                                type="button"
+                                                                title="Move step page up"
+                                                                aria-label="Move step page up"
+                                                                :disabled="subIndex === 0"
+                                                                @click="moveSubPage(activeStepPage, subIndex, -1)"
+                                                            >
+                                                                <ArrowUp :size="22" />
+                                                            </button>
+                                                            <button
+                                                                class="icon-button step-page-move-button"
+                                                                type="button"
+                                                                title="Move step page down"
+                                                                aria-label="Move step page down"
+                                                                :disabled="subIndex === activeStepPage.subPages.length - 1"
+                                                                @click="moveSubPage(activeStepPage, subIndex, 1)"
+                                                            >
+                                                                <ArrowDown :size="22" />
+                                                            </button>
+                                                        </div>
+                                                        <div class="step-progress-chip step-page-progress-chip">
+                                                            <span>Progress button</span>
+                                                            <strong>{{ formatSubPageProgress(subIndex, activeStepPage.subPages.length) }}</strong>
+                                                        </div>
                                                     </div>
                                                 </header>
                                                 <label class="field">
@@ -2261,6 +2285,17 @@ function addSubPage(page: WizardPage) {
         ...createSubPage(page.subPages.length),
         blocks: [createBlock('content')],
     });
+}
+
+function moveSubPage(page: WizardPage, index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+
+    if (nextIndex < 0 || nextIndex >= page.subPages.length) {
+        return;
+    }
+
+    const [subPage] = page.subPages.splice(index, 1);
+    page.subPages.splice(nextIndex, 0, subPage);
 }
 
 function removeSubPage(page: WizardPage, index: number) {
