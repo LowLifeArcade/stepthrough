@@ -380,8 +380,20 @@
                                     :key="question.id"
                                     class="live-field"
                                 >
-                                    <span>{{ question.label }}</span>
-                                    <template v-if="question.inputType === 'sum-chips'">
+                                     <div
+                                         v-if="question.descriptionType === 'text' && question.description"
+                                         class="question-description"
+                                     >
+                                         {{ question.description }}
+                                     </div>
+                                     <div
+                                         v-else-if="question.descriptionType === 'previous-answer' && question.descriptionPreviousAnswerKey"
+                                         class="question-description"
+                                     >
+                                         {{ questionDescriptionValue(question) }}
+                                     </div>
+                                     <span>{{ question.label }}</span>
+                                     <template v-if="question.inputType === 'sum-chips'">
                                         <input
                                             v-if="question.sumChipShowInput"
                                             v-model="sumChipInputDrafts[answerKey(currentScreen.key, question.id)]"
@@ -696,6 +708,9 @@ type LiveQuestion = {
     useGlobalSumChipOptions: boolean;
     sumChipShowInput: boolean;
     optionGroups: SumChipOptionGroup[];
+    descriptionType: 'text' | 'previous-answer';
+    description: string;
+    descriptionPreviousAnswerKey: string;
 };
 
 type SumChipOptionGroup = {
@@ -1007,6 +1022,9 @@ function normalizeQuestions(value: unknown): LiveQuestion[] {
             sumChipShowInput:
                 normalizeInputType(question.inputType) === 'sum-chips' ? question.sumChipShowInput !== false : true,
             optionGroups: normalizeSumChipOptionGroups(question.optionGroups),
+            descriptionType: question.descriptionType === 'previous-answer' ? 'previous-answer' : 'text',
+            description: typeof question.description === 'string' ? question.description : '',
+            descriptionPreviousAnswerKey: typeof question.descriptionPreviousAnswerKey === 'string' ? question.descriptionPreviousAnswerKey : '',
         }));
 }
 
@@ -1154,6 +1172,24 @@ function previousAnswerValue(block: LiveBlock) {
     const value = answers[block.previousAnswerKey];
 
     return Array.isArray(value) ? value.join(', ') : value || '';
+}
+
+function questionDescriptionValue(question: LiveQuestion) {
+    if (question.descriptionType === 'text') {
+        return question.description;
+    }
+
+    if (question.descriptionType === 'previous-answer' && question.descriptionPreviousAnswerKey) {
+        if (isSumChipTotalsKey(question.descriptionPreviousAnswerKey)) {
+            return previousSumChipTotalsValue(question.descriptionPreviousAnswerKey);
+        }
+
+        const value = answers[question.descriptionPreviousAnswerKey];
+
+        return Array.isArray(value) ? value.join(', ') : value || '';
+    }
+
+    return '';
 }
 
 function chipAnswerValue(key: string) {

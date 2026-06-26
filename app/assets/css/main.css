@@ -997,6 +997,12 @@ body {
 .question-editor {
     display: grid;
     gap: 0.8rem;
+
+    .question-description {
+        display: grid;
+        grid-template-columns: minmax(10rem, .3fr) 1fr;
+        gap: 1rem;
+    }
 }
 
 .sum-chip-global-options {

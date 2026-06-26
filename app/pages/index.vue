@@ -705,6 +705,36 @@
                                                                     :key="question.id"
                                                                     class="question-editor"
                                                                 >
+                                                                    <div class="question-description">
+                                                                        <select
+                                                                            v-model="question.descriptionType"
+                                                                            class="text-input compact-select"
+                                                                        >
+                                                                            <option value="text">Text</option>
+                                                                            <option value="previous-answer">Previous answer</option>
+                                                                        </select>
+                                                                        <select
+                                                                            v-if="question.descriptionType === 'previous-answer'"
+                                                                            v-model="question.descriptionPreviousAnswerKey"
+                                                                            class="text-input compact-select"
+                                                                        >
+                                                                            <option value="">Choose an earlier answer</option>
+                                                                            <option
+                                                                                v-for="opt in answerReferenceOptionsFor(block)"
+                                                                                :key="opt.key"
+                                                                                :value="opt.key"
+                                                                            >
+                                                                                {{ opt.label }}
+                                                                            </option>
+                                                                        </select>
+                                                                        <input
+                                                                            v-else
+                                                                            v-model="question.description"
+                                                                            class="text-input"
+                                                                            type="text"
+                                                                            placeholder="Description (optional)"
+                                                                        />
+                                                                    </div>
                                                                     <article class="question-row">
                                                                         <input
                                                                             v-model="question.label"
@@ -814,7 +844,7 @@
                                                                     <textarea
                                                                         v-model="block.content"
                                                                         class="text-input textarea-input compact-textarea"
-                                                                        placeholder="Name your top 5 favorite foods."
+                                                                        placeholder="Add your description here (optional)"
                                                                     ></textarea>
                                                                 </label>
                                                                 <article
@@ -1389,6 +1419,36 @@
                                                                         :key="question.id"
                                                                         class="question-editor"
                                                                     >
+                                                                        <div class="question-description">
+                                                                            <select
+                                                                                v-model="question.descriptionType"
+                                                                                class="text-input compact-select"
+                                                                            >
+                                                                                <option value="text">Text</option>
+                                                                                <option value="previous-answer">Previous answer</option>
+                                                                            </select>
+                                                                            <select
+                                                                                v-if="question.descriptionType === 'previous-answer'"
+                                                                                v-model="question.descriptionPreviousAnswerKey"
+                                                                                class="text-input compact-select"
+                                                                            >
+                                                                                <option value="">Choose an earlier answer</option>
+                                                                                <option
+                                                                                    v-for="opt in answerReferenceOptionsFor(block)"
+                                                                                    :key="opt.key"
+                                                                                    :value="opt.key"
+                                                                                >
+                                                                                    {{ opt.label }}
+                                                                                </option>
+                                                                            </select>
+                                                                            <input
+                                                                                v-else
+                                                                                v-model="question.description"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Description (optional)"
+                                                                            />
+                                                                        </div>
                                                                         <article class="question-row">
                                                                             <input
                                                                                 v-model="question.label"
@@ -1498,7 +1558,7 @@
                                                                         <textarea
                                                                             v-model="block.content"
                                                                             class="text-input textarea-input compact-textarea"
-                                                                            placeholder="Name your top 5 favorite foods."
+                                                                            placeholder="Add your description here (optional)"
                                                                         ></textarea>
                                                                     </label>
                                                                     <article
@@ -2155,6 +2215,9 @@ type WizardQuestion = {
     useGlobalSumChipOptions: boolean;
     sumChipShowInput: boolean;
     optionGroups: SumChipOptionGroup[];
+    descriptionType: 'text' | 'previous-answer';
+    description: string;
+    descriptionPreviousAnswerKey: string;
 };
 
 type SumChipOptionGroup = {
@@ -2408,6 +2471,9 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
         useGlobalSumChipOptions: false,
         sumChipShowInput: true,
         optionGroups: inputType === 'sum-chips' ? defaultSumChipOptionGroups() : [],
+        descriptionType: 'text',
+        description: '',
+        descriptionPreviousAnswerKey: '',
     };
 }
 
@@ -2422,14 +2488,14 @@ function createBlock(type: BlockType): WizardBlock {
     const contentByType: Record<BlockType, string> = {
         content: '',
         questions: '',
-        'multi-answer': 'Name your top 5 favorite foods.',
-        notes: 'Add any longer notes you want to save here.',
-        hero: 'Begin with a clear intention for this step-through.',
-        quote: 'A short quote or prayer can stand out here.',
-        standout: 'Highlight the thing the user should not miss.',
+        'multi-answer': '',
+        notes: '',
+        hero: '',
+        quote: '',
+        standout: '',
         image: '',
-        resource: 'Link to a resource, reference, or quick info page.',
-        'previous-answer': 'Bring an earlier answer forward here.',
+        resource: '',
+        'previous-answer': '',
     };
 
     return {
@@ -2887,7 +2953,7 @@ function blockPlaceholder(type: BlockType) {
     const placeholders: Record<BlockType, string> = {
         content: 'Write flexible body content for this page.',
         questions: 'Question block',
-        'multi-answer': 'Name your top 5 favorite foods.',
+        'multi-answer': '',
         notes: 'Prompt for user notes',
         hero: 'Large opening text for the page',
         quote: 'Quote, prayer, or memorable line',
@@ -2969,6 +3035,9 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
                 optionGroups: normalizeInputType(question.inputType) === 'sum-chips'
                     ? normalizeSumChipOptionGroups(question.optionGroups)
                     : [],
+                descriptionType: question.descriptionType === 'previous-answer' ? 'previous-answer' : 'text',
+                description: typeof question.description === 'string' ? question.description : '',
+                descriptionPreviousAnswerKey: typeof question.descriptionPreviousAnswerKey === 'string' ? question.descriptionPreviousAnswerKey : '',
             }));
     }
 
