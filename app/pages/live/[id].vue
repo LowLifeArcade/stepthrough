@@ -167,8 +167,52 @@
                             <small>Updated {{ formatDate(instance.updated_at) }}</small>
                         </span>
                         <ArrowRight :size="18" />
+                        <Trash2
+                            class="instance-delete-button"
+                            :size="18"
+                            @click.stop="deleteInstance(instance.id, $event, instance.title)"
+                            title="Delete instance"
+                            aria-label="Delete instance"
+                        />
                     </button>
                 </div>
+                <Transition name="live-welcome-modal delete-modal">
+                    <div
+                        v-if="showDeleteInstanceModal"
+                        class="live-welcome-backdrop"
+                        @click="showDeleteInstanceModal = false"
+                    >
+                        <section
+                            class="live-welcome-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="welcome-back-title"
+                        >
+                            <header class="live-welcome-modal-header">
+                                <span class="live-welcome-icon">
+                                    <FileExclamationPoint :size="24" />
+                                </span>
+                                <div>
+                                    <span class="detail-meta">Delete instance</span>
+                                    <h2 id="welcome-back-title">{{ deletingInstanceTitle }}</h2>
+                                </div>
+                            </header>
+                            <div class="live-welcome-message">
+                                <p>You are deleting instance {{ deletingInstanceTitle }}. This action cannot be undone. Continue?</p>
+                            </div>
+                            <footer class="live-welcome-modal-actions">
+                                <button
+                                    class="danger-button"
+                                    type="button"
+                                    @click="confirmDeleteInstance"
+                                >
+                                    Delete
+                                    <FileExclamationPoint :size="18" />
+                                </button>
+                            </footer>
+                        </section>
+                    </div>
+                </Transition>
             </section>
         </section>
 
@@ -181,6 +225,7 @@
                 <div
                     v-if="showWelcomeBackModal"
                     class="live-welcome-backdrop"
+                    @click="showWelcomeBackModal = false"
                 >
                     <section
                         class="live-welcome-modal"
@@ -592,9 +637,10 @@ import {
     Play,
     Plus,
     Sparkles,
+    Trash2,
     X,
 } from '@lucide/vue';
-import { LogIn } from '@lucide/vue';
+import { LogIn, FileExclamationPoint } from '@lucide/vue';
 import { renderFormattedContent } from '~/utils/contentFormatting';
 
 type LiveProject = {
@@ -740,6 +786,11 @@ const lastAppliedSaveRevision = ref(0);
 const showWelcomeBackModal = ref(false);
 const dismissedWelcomeInstanceId = ref<string | null>(null);
 const isMobileNavOpen = ref(false);
+const deleteInstanceTarget = ref<string | null>(null);
+const showDeleteInstanceModal = ref(false);
+const instanceErrorToDelete = ref('');
+const deletingInstance = ref(false);
+const deletingInstanceTitle = ref('');
 
 const { data: project, pending, error, refresh } = await useFetch<LiveProject>(`/api/live/${route.params.id}`);
 const blueprint = computed(() => parseBlueprint(project.value?.blueprint));
@@ -1184,7 +1235,10 @@ function isSumChipSelected(key: string, chip: string) {
 function toggleSumChipOption(key: string, chip: string) {
     if (isSumChipSelected(key, chip)) {
         let idx = answers[key]?.indexOf(chip)
-        answers[key] = answers[key]?.toSpliced(idx, 1);
+        if (idx != null && idx > 0) {
+            answers[key] = (answers[key] as Array<string>)?.toSpliced(idx, 1);
+        }
+
         return;
     }
 
@@ -1568,6 +1622,35 @@ function updateSavedInstance(saved: WalkthroughInstance) {
 function dismissWelcomeBackModal() {
     dismissedWelcomeInstanceId.value = activeInstance.value?.id || null;
     showWelcomeBackModal.value = false;
+}
+
+async function deleteInstance(instanceId: string, event?: Event, title: string) {
+    if (event) {
+        event.stopPropagation();
+    }
+
+    deleteInstanceTarget.value = instanceId;
+    deletingInstanceTitle.value = title;
+    deletingInstance.value = true;
+    showDeleteInstanceModal.value = true;
+}
+
+async function confirmDeleteInstance() {
+    if (!deleteInstanceTarget.value) return;
+
+    try {
+        await $fetch(`/api/live/${route.params.id}/instances/${deleteInstanceTarget.value}`, {
+            method: 'DELETE',
+        });
+        await refresh();
+        if (activeInstance.value?.id === deleteInstanceTarget.value) {
+            activeInstance.value = null;
+        }
+        showDeleteInstanceModal.value = false;
+        deleteInstanceTarget.value = null;
+    } catch (error: any) {
+        instanceErrorToDelete.value = error?.data?.message || 'Could not delete this instance.';
+    }
 }
 
 function closeMobileNav() {

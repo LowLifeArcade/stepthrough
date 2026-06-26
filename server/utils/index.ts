@@ -1,0 +1,2 @@
+export { deleteProjectRecords };
+export { deleteWalkthroughInstance };
