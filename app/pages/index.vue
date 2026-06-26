@@ -569,11 +569,43 @@
                                                             />
                                                         </label>
                                                         <template v-if="block.type === 'image'">
+                                                            <div class="image-upload-fields">
+                                                                <label class="secondary-button image-upload-button">
+                                                                    <Upload :size="18" />
+                                                                    {{ imageUploadState[block.id] === 'uploading' ? 'Uploading' : 'Upload image' }}
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                                                                        :disabled="imageUploadState[block.id] === 'uploading'"
+                                                                        @change="uploadBlockImage(block, $event)"
+                                                                    />
+                                                                </label>
+                                                                <button
+                                                                    v-if="block.imageUrl"
+                                                                    class="secondary-button"
+                                                                    type="button"
+                                                                    @click="removeBlockImage(block)"
+                                                                >
+                                                                    Clear image
+                                                                </button>
+                                                            </div>
+                                                            <img
+                                                                v-if="block.imageUrl"
+                                                                class="image-upload-preview"
+                                                                :src="block.imageUrl"
+                                                                :alt="block.caption || 'Uploaded image preview'"
+                                                            />
+                                                            <p
+                                                                v-if="imageUploadErrors[block.id]"
+                                                                class="error-message"
+                                                            >
+                                                                {{ imageUploadErrors[block.id] }}
+                                                            </p>
                                                             <input
                                                                 v-model="block.imageUrl"
                                                                 class="text-input"
                                                                 type="url"
-                                                                placeholder="Image URL"
+                                                                placeholder="Image URL or uploaded image path"
                                                             />
                                                             <input
                                                                 v-model="block.caption"
@@ -1076,11 +1108,43 @@
                                                                 />
                                                             </label>
                                                             <template v-if="block.type === 'image'">
+                                                                <div class="image-upload-fields">
+                                                                    <label class="secondary-button image-upload-button">
+                                                                        <Upload :size="18" />
+                                                                        {{ imageUploadState[block.id] === 'uploading' ? 'Uploading' : 'Upload image' }}
+                                                                        <input
+                                                                            type="file"
+                                                                            accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                                                                            :disabled="imageUploadState[block.id] === 'uploading'"
+                                                                            @change="uploadBlockImage(block, $event)"
+                                                                        />
+                                                                    </label>
+                                                                    <button
+                                                                        v-if="block.imageUrl"
+                                                                        class="secondary-button"
+                                                                        type="button"
+                                                                        @click="removeBlockImage(block)"
+                                                                    >
+                                                                        Clear image
+                                                                    </button>
+                                                                </div>
+                                                                <img
+                                                                    v-if="block.imageUrl"
+                                                                    class="image-upload-preview"
+                                                                    :src="block.imageUrl"
+                                                                    :alt="block.caption || 'Uploaded image preview'"
+                                                                />
+                                                                <p
+                                                                    v-if="imageUploadErrors[block.id]"
+                                                                    class="error-message"
+                                                                >
+                                                                    {{ imageUploadErrors[block.id] }}
+                                                                </p>
                                                                 <input
                                                                     v-model="block.imageUrl"
                                                                     class="text-input"
                                                                     type="url"
-                                                                    placeholder="Image URL"
+                                                                    placeholder="Image URL or uploaded image path"
                                                                 />
                                                                 <input
                                                                     v-model="block.caption"
@@ -1745,6 +1809,7 @@ import {
     TextQuote,
     Trash2,
     Type,
+    Upload,
 } from '@lucide/vue';
 
 type Project = {
@@ -1840,6 +1905,11 @@ type PendingDashboardAction =
           confirmationTitle: string;
       };
 
+type ImageUploadResponse = {
+    key: string;
+    url: string;
+};
+
 const wizardStorageKey = 'stepthrough:create-wizard';
 const pendingDashboardActionKey = 'stepthrough:pending-dashboard-action';
 const { loggedIn, user } = useUserSession();
@@ -1864,6 +1934,8 @@ const wizardStep = ref(0);
 const activeStepPageIndex = ref(0);
 const stepWizardView = ref<'build' | 'preview'>('build');
 const stepPageWizardView = ref<'build' | 'preview'>('build');
+const imageUploadState = reactive<Record<string, 'uploading' | undefined>>({});
+const imageUploadErrors = reactive<Record<string, string>>({});
 
 const wizardSteps = [
     { title: 'Basics', short: 'Basics' },
@@ -2329,6 +2401,44 @@ function addBlock(target: WizardPage | WizardSubPage, type: BlockType) {
 function addExtractedText(block: WizardBlock, text: string) {
     const existingContent = block.content.trim();
     block.content = existingContent ? `${existingContent}\n\n${text}` : text;
+}
+
+async function uploadBlockImage(block: WizardBlock, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) {
+        return;
+    }
+
+    imageUploadState[block.id] = 'uploading';
+    imageUploadErrors[block.id] = '';
+
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const uploaded = await $fetch<ImageUploadResponse>('/api/images', {
+            method: 'POST',
+            body: formData,
+        });
+
+        block.imageUrl = uploaded.url;
+    } catch (error: any) {
+        if (redirectToLoginIfUnauthorized(error)) {
+            return;
+        }
+
+        imageUploadErrors[block.id] = error?.data?.message || 'Could not upload this image.';
+    } finally {
+        imageUploadState[block.id] = undefined;
+        input.value = '';
+    }
+}
+
+function removeBlockImage(block: WizardBlock) {
+    block.imageUrl = '';
+    imageUploadErrors[block.id] = '';
 }
 
 function removeBlock(target: WizardPage | WizardSubPage, index: number) {

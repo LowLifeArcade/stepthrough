@@ -26,6 +26,12 @@
             "migrations_dir": "db/migrations"
         }
     ],
+    "r2_buckets": [
+        {
+            "binding": "STEPTHROUGH_IMAGES",
+            "bucket_name": "stepthrough-images"
+        }
+    ],
     "env": {
         "dev": {
             "vars": {
@@ -37,6 +43,12 @@
                     "database_name": "stepthrough-db-dev",
                     "database_id": "721dc626-765b-46f1-8084-aa6c3c2de313",
                     "migrations_dir": "db/migrations"
+                }
+            ],
+            "r2_buckets": [
+                {
+                    "binding": "STEPTHROUGH_IMAGES",
+                    "bucket_name": "stepthrough-images-dev"
                 }
             ]
         }
