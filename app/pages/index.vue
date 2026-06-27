@@ -882,7 +882,7 @@
                                                             </div>
                                                         </template>
                                                         <template v-else-if="block.type === 'previous-multi-answer'">
-                                                            <div class="previous-answer-fields">
+                                                            <div class="previous-answer-fields multi">
                                                                 <select
                                                                     v-model="block.previousMultiAnswerKey"
                                                                     class="text-input compact-select"
@@ -906,12 +906,6 @@
                                                                         class="question-editor"
                                                                     >
                                                                         <div class="question-description">
-                                                                            <input
-                                                                                v-model="question.description"
-                                                                                class="text-input"
-                                                                                type="text"
-                                                                                placeholder="Description (optional)"
-                                                                            />
                                                                             <select
                                                                                 v-model="question.descriptionType"
                                                                                 class="text-input compact-select"
@@ -933,6 +927,13 @@
                                                                                     {{ opt.label }}
                                                                                 </option>
                                                                             </select>
+                                                                            <input
+                                                                                v-else
+                                                                                v-model="question.description"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Description (optional)"
+                                                                            />
                                                                         </div>
                                                                         <article class="question-row">
                                                                             <input
@@ -1831,7 +1832,7 @@
                                                                 </div>
                                                             </template>
                                                             <template v-else-if="block.type === 'previous-multi-answer'">
-                                                                <div class="previous-answer-fields">
+                                                                <div class="previous-answer-fields multi">
                                                                     <select
                                                                         v-model="block.previousMultiAnswerKey"
                                                                         class="text-input compact-select"
@@ -1855,12 +1856,7 @@
                                                                             class="question-editor"
                                                                         >
                                                                             <div class="question-description">
-                                                                                <input
-                                                                                    v-model="question.description"
-                                                                                    class="text-input"
-                                                                                    type="text"
-                                                                                    placeholder="Description (optional)"
-                                                                                />
+
                                                                                 <select
                                                                                     v-model="question.descriptionType"
                                                                                     class="text-input compact-select"
@@ -1882,6 +1878,13 @@
                                                                                         {{ opt.label }}
                                                                                     </option>
                                                                                 </select>
+                                                                                 <input
+                                                                                    v-else
+                                                                                    v-model="question.description"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Description (optional)"
+                                                                                />
                                                                             </div>
                                                                             <article class="question-row">
                                                                                 <input
@@ -3485,9 +3488,9 @@ function normalizeQuestions(value: unknown, fallbackQuestion?: unknown): WizardQ
 
 function defaultSumChipOptionGroups(): SumChipOptionGroup[] {
     return [
-        { id: createId(), header: 'Food', chips: ['pizza', 'salmon', 'bread'] },
-        { id: createId(), header: 'Emotions', chips: ['fear', 'hate', 'love'] },
-        { id: createId(), header: 'Wildlife', chips: ['birds', 'bears', 'deer'] },
+        // { id: createId(), header: 'Food', chips: ['pizza', 'salmon', 'bread'] },
+        // { id: createId(), header: 'Emotions', chips: ['fear', 'hate', 'love'] },
+        // { id: createId(), header: 'Wildlife', chips: ['birds', 'bears', 'deer'] },
     ];
 }
 

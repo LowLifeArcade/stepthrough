@@ -1087,6 +1087,10 @@ body {
     display: grid;
     grid-template-columns: minmax(14rem, 0.8fr) minmax(18rem, 1fr);
     gap: 1rem;
+
+    &.multi {
+        grid-template-columns: 1fr;
+    }
 }
 
 .step-main-grid,
