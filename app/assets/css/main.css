@@ -2522,7 +2522,11 @@ body {
 
 .live-blocks {
     display: grid;
-    gap: 1rem;
+    gap: 2rem;
+
+    @media (width > 800px) {
+        gap: 5rem;
+    }
 }
 
 .live-block {
