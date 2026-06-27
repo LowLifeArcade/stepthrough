@@ -527,6 +527,7 @@
                                                             <option value="image">Image</option>
                                                             <option value="resource">Resource</option>
                                                             <option value="previous-answer">Previous answer</option>
+                                                            <option value="previous-multi-answer">Previous multi answer</option>
                                                         </select>
                                                         <button
                                                             class="icon-button"
@@ -712,6 +713,7 @@
                                                                         >
                                                                             <option value="text">Text</option>
                                                                             <option value="previous-answer">Previous answer</option>
+                                                                            <option value="previous-multi-answer">Previous multi answer</option>
                                                                         </select>
                                                                         <select
                                                                             v-if="question.descriptionType === 'previous-answer'"
@@ -877,6 +879,204 @@
                                                                     <Plus :size="18" />
                                                                     Add answer field
                                                                 </button>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="block.type === 'previous-multi-answer'">
+                                                            <div class="previous-answer-fields">
+                                                                <select
+                                                                    v-model="block.previousMultiAnswerKey"
+                                                                    class="text-input compact-select"
+                                                                >
+                                                                    <option value="">Choose a multi-answer block</option>
+                                                                    <option
+                                                                        v-for="option in multiAnswerBlockOptionsFor(block)"
+                                                                        :key="option.key"
+                                                                        :value="option.key"
+                                                                    >
+                                                                        {{ option.label }}
+                                                                    </option>
+                                                                </select>
+                                                                <div
+                                                                    v-if="block.previousMultiAnswerKey"
+                                                                    class="question-block-fields"
+                                                                >
+                                                                    <div
+                                                                        v-for="(question, questionIndex) in block.previousMultiAnswerQuestions"
+                                                                        :key="question.id"
+                                                                        class="question-editor"
+                                                                    >
+                                                                        <div class="question-description">
+                                                                            <input
+                                                                                v-model="question.description"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Description (optional)"
+                                                                            />
+                                                                            <select
+                                                                                v-model="question.descriptionType"
+                                                                                class="text-input compact-select"
+                                                                            >
+                                                                                <option value="text">Text</option>
+                                                                                <option value="previous-answer">Previous answer</option>
+                                                                            </select>
+                                                                            <select
+                                                                                v-if="question.descriptionType === 'previous-answer'"
+                                                                                v-model="question.descriptionPreviousAnswerKey"
+                                                                                class="text-input compact-select"
+                                                                            >
+                                                                                <option value="">Choose an earlier answer</option>
+                                                                                <option
+                                                                                    v-for="opt in answerReferenceOptionsFor(block)"
+                                                                                    :key="opt.key"
+                                                                                    :value="opt.key"
+                                                                                >
+                                                                                    {{ opt.label }}
+                                                                                </option>
+                                                                            </select>
+                                                                        </div>
+                                                                        <article class="question-row">
+                                                                            <input
+                                                                                v-model="question.label"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Question"
+                                                                            />
+                                                                            <input
+                                                                                v-model="question.placeholder"
+                                                                                class="text-input"
+                                                                                type="text"
+                                                                                placeholder="Input placeholder"
+                                                                            />
+                                                                            <select
+                                                                                v-model="question.inputType"
+                                                                                class="text-input compact-select"
+                                                                                @change="syncQuestionInputType(block, question)"
+                                                                            >
+                                                                                <option value="text">Short text</option>
+                                                                                <option value="textarea">Long text</option>
+                                                                                <option value="sum-chips">Sum chips</option>
+                                                                                <option value="number">Number</option>
+                                                                                <option value="date">Date</option>
+                                                                            </select>
+                                                                            <button
+                                                                                class="icon-button"
+                                                                                type="button"
+                                                                                title="Remove question"
+                                                                                aria-label="Remove question"
+                                                                                @click="removeQuestion(block, questionIndex)"
+                                                                            >
+                                                                                <Trash2 :size="18" />
+                                                                            </button>
+                                                                        </article>
+                                                                        <div
+                                                                            v-if="question.inputType === 'sum-chips'"
+                                                                            class="sum-chip-options-editor"
+                                                                        >
+                                                                            <label class="sum-chip-global-toggle">
+                                                                                <input
+                                                                                    v-model="question.useGlobalSumChipOptions"
+                                                                                    type="checkbox"
+                                                                                    @change="syncQuestionGlobalSumChipOptions(block, question)"
+                                                                                />
+                                                                                <span>Use global options</span>
+                                                                            </label>
+                                                                            <label class="sum-chip-global-toggle">
+                                                                                <input
+                                                                                    v-model="question.sumChipShowInput"
+                                                                                    type="checkbox"
+                                                                                />
+                                                                                <span>Show input field</span>
+                                                                            </label>
+                                                                            <article
+                                                                                v-for="(group, groupIndex) in question.optionGroups"
+                                                                                :key="group.id"
+                                                                                class="sum-chip-option-group-editor"
+                                                                            >
+                                                                                <input
+                                                                                    v-model="group.header"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Group header"
+                                                                                />
+                                                                                <input
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="pizza, salmon, bread"
+                                                                                    :value="sumChipGroupChipsText(group)"
+                                                                                    @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                                />
+                                                                                <button
+                                                                                    class="icon-button"
+                                                                                    type="button"
+                                                                                    title="Remove option group"
+                                                                                    aria-label="Remove option group"
+                                                                                    @click="removeSumChipOptionGroup(question, groupIndex)"
+                                                                                >
+                                                                                    <Trash2 :size="18" />
+                                                                                </button>
+                                                                            </article>
+                                                                            <button
+                                                                                class="secondary-button add-row-button"
+                                                                                type="button"
+                                                                                @click="addSumChipOptionGroup(question)"
+                                                                            >
+                                                                                <Plus :size="18" />
+                                                                                Add option group
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        v-if="hasSumChipQuestions(block)"
+                                                                        class="sum-chip-global-options"
+                                                                    >
+                                                                        <div class="sum-chip-options-editor">
+                                                                            <article
+                                                                                v-for="(group, groupIndex) in block.globalSumChipOptionGroups"
+                                                                                :key="group.id"
+                                                                                class="sum-chip-option-group-editor"
+                                                                            >
+                                                                                <input
+                                                                                    v-model="group.header"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Global group header"
+                                                                                />
+                                                                                <input
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="pizza, salmon, bread"
+                                                                                    :value="sumChipGroupChipsText(group)"
+                                                                                    @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                                />
+                                                                                <button
+                                                                                    class="icon-button"
+                                                                                    type="button"
+                                                                                    title="Remove global option group"
+                                                                                    aria-label="Remove global option group"
+                                                                                    @click="removeGlobalSumChipOptionGroup(block, groupIndex)"
+                                                                                >
+                                                                                    <Trash2 :size="18" />
+                                                                                </button>
+                                                                            </article>
+                                                                            <button
+                                                                                class="secondary-button add-row-button"
+                                                                                type="button"
+                                                                                @click="addGlobalSumChipOptionGroup(block)"
+                                                                            >
+                                                                                <Plus :size="18" />
+                                                                                Add global option group
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        class="secondary-button add-row-button"
+                                                                        type="button"
+                                                                        @click="addQuestion(block)"
+                                                                    >
+                                                                        <Plus :size="18" />
+                                                                        Add question
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </template>
                                                         <template v-else-if="block.type === 'notes'">
@@ -1062,6 +1262,12 @@
                                                             <strong>Saved answer will appear here.</strong>
                                                         </div>
                                                     </template>
+                                                    <template v-else-if="block.type === 'previous-multi-answer'">
+                                                        <div class="wizard-preview-previous-answer">
+                                                            <span>Previous multi answer</span>
+                                                            <strong>Saved answers will appear here with questions below each.</strong>
+                                                        </div>
+                                                    </template>
                                                     <template v-else>
                                                         <div
                                                             class="formatted-content"
@@ -1241,6 +1447,7 @@
                                                                 <option value="image">Image</option>
                                                                 <option value="resource">Resource</option>
                                                                 <option value="previous-answer">Previous answer</option>
+                                                                <option value="previous-multi-answer">Previous multi answer</option>
                                                             </select>
                                                             <button
                                                                 class="icon-button"
@@ -1623,6 +1830,204 @@
                                                                     </select>
                                                                 </div>
                                                             </template>
+                                                            <template v-else-if="block.type === 'previous-multi-answer'">
+                                                                <div class="previous-answer-fields">
+                                                                    <select
+                                                                        v-model="block.previousMultiAnswerKey"
+                                                                        class="text-input compact-select"
+                                                                    >
+                                                                        <option value="">Choose a multi-answer block</option>
+                                                                        <option
+                                                                            v-for="option in multiAnswerBlockOptionsFor(block)"
+                                                                            :key="option.key"
+                                                                            :value="option.key"
+                                                                        >
+                                                                            {{ option.label }}
+                                                                        </option>
+                                                                    </select>
+                                                                    <div
+                                                                        v-if="block.previousMultiAnswerKey"
+                                                                        class="question-block-fields"
+                                                                    >
+                                                                        <div
+                                                                            v-for="(question, questionIndex) in block.previousMultiAnswerQuestions"
+                                                                            :key="question.id"
+                                                                            class="question-editor"
+                                                                        >
+                                                                            <div class="question-description">
+                                                                                <input
+                                                                                    v-model="question.description"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Description (optional)"
+                                                                                />
+                                                                                <select
+                                                                                    v-model="question.descriptionType"
+                                                                                    class="text-input compact-select"
+                                                                                >
+                                                                                    <option value="text">Text</option>
+                                                                                    <option value="previous-answer">Previous answer</option>
+                                                                                </select>
+                                                                                <select
+                                                                                    v-if="question.descriptionType === 'previous-answer'"
+                                                                                    v-model="question.descriptionPreviousAnswerKey"
+                                                                                    class="text-input compact-select"
+                                                                                >
+                                                                                    <option value="">Choose an earlier answer</option>
+                                                                                    <option
+                                                                                        v-for="opt in answerReferenceOptionsFor(block)"
+                                                                                        :key="opt.key"
+                                                                                        :value="opt.key"
+                                                                                    >
+                                                                                        {{ opt.label }}
+                                                                                    </option>
+                                                                                </select>
+                                                                            </div>
+                                                                            <article class="question-row">
+                                                                                <input
+                                                                                    v-model="question.label"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Question"
+                                                                                />
+                                                                                <input
+                                                                                    v-model="question.placeholder"
+                                                                                    class="text-input"
+                                                                                    type="text"
+                                                                                    placeholder="Input placeholder"
+                                                                                />
+                                                                                <select
+                                                                                    v-model="question.inputType"
+                                                                                    class="text-input compact-select"
+                                                                                    @change="syncQuestionInputType(block, question)"
+                                                                                >
+                                                                                    <option value="text">Short text</option>
+                                                                                    <option value="textarea">Long text</option>
+                                                                                    <option value="sum-chips">Sum chips</option>
+                                                                                    <option value="number">Number</option>
+                                                                                    <option value="date">Date</option>
+                                                                                </select>
+                                                                                <button
+                                                                                    class="icon-button"
+                                                                                    type="button"
+                                                                                    title="Remove question"
+                                                                                    aria-label="Remove question"
+                                                                                    @click="removeQuestion(block, questionIndex)"
+                                                                                >
+                                                                                    <Trash2 :size="18" />
+                                                                                </button>
+                                                                            </article>
+                                                                            <div
+                                                                                v-if="question.inputType === 'sum-chips'"
+                                                                                class="sum-chip-options-editor"
+                                                                            >
+                                                                                <label class="sum-chip-global-toggle">
+                                                                                    <input
+                                                                                        v-model="question.useGlobalSumChipOptions"
+                                                                                        type="checkbox"
+                                                                                        @change="syncQuestionGlobalSumChipOptions(block, question)"
+                                                                                    />
+                                                                                    <span>Use global options</span>
+                                                                                </label>
+                                                                                <label class="sum-chip-global-toggle">
+                                                                                    <input
+                                                                                        v-model="question.sumChipShowInput"
+                                                                                        type="checkbox"
+                                                                                    />
+                                                                                    <span>Show input field</span>
+                                                                                </label>
+                                                                                <article
+                                                                                    v-for="(group, groupIndex) in question.optionGroups"
+                                                                                    :key="group.id"
+                                                                                    class="sum-chip-option-group-editor"
+                                                                                >
+                                                                                    <input
+                                                                                        v-model="group.header"
+                                                                                        class="text-input"
+                                                                                        type="text"
+                                                                                        placeholder="Group header"
+                                                                                    />
+                                                                                    <input
+                                                                                        class="text-input"
+                                                                                        type="text"
+                                                                                        placeholder="pizza, salmon, bread"
+                                                                                        :value="sumChipGroupChipsText(group)"
+                                                                                        @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                                    />
+                                                                                    <button
+                                                                                        class="icon-button"
+                                                                                        type="button"
+                                                                                        title="Remove option group"
+                                                                                        aria-label="Remove option group"
+                                                                                        @click="removeSumChipOptionGroup(question, groupIndex)"
+                                                                                    >
+                                                                                        <Trash2 :size="18" />
+                                                                                    </button>
+                                                                                </article>
+                                                                                <button
+                                                                                    class="secondary-button add-row-button"
+                                                                                    type="button"
+                                                                                    @click="addSumChipOptionGroup(question)"
+                                                                                >
+                                                                                    <Plus :size="18" />
+                                                                                    Add option group
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div
+                                                                            v-if="hasSumChipQuestions(block)"
+                                                                            class="sum-chip-global-options"
+                                                                        >
+                                                                            <div class="sum-chip-options-editor">
+                                                                            <article
+                                                                                    v-for="(group, groupIndex) in block.globalSumChipOptionGroups"
+                                                                                    :key="group.id"
+                                                                                    class="sum-chip-option-group-editor"
+                                                                                >
+                                                                                    <input
+                                                                                        v-model="group.header"
+                                                                                        class="text-input"
+                                                                                        type="text"
+                                                                                        placeholder="Global group header"
+                                                                                    />
+                                                                                    <input
+                                                                                        class="text-input"
+                                                                                        type="text"
+                                                                                        placeholder="pizza, salmon, bread"
+                                                                                        :value="sumChipGroupChipsText(group)"
+                                                                                        @change="setSumChipGroupChips(group, ($event.target as HTMLInputElement).value)"
+                                                                                    />
+                                                                                    <button
+                                                                                        class="icon-button"
+                                                                                        type="button"
+                                                                                        title="Remove global option group"
+                                                                                        aria-label="Remove global option group"
+                                                                                        @click="removeGlobalSumChipOptionGroup(block, groupIndex)"
+                                                                                    >
+                                                                                        <Trash2 :size="18" />
+                                                                                    </button>
+                                                                                </article>
+                                                                                <button
+                                                                                    class="secondary-button add-row-button"
+                                                                                    type="button"
+                                                                                    @click="addGlobalSumChipOptionGroup(block)"
+                                                                                >
+                                                                                    <Plus :size="18" />
+                                                                                    Add global option group
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <button
+                                                                            class="secondary-button add-row-button"
+                                                                            type="button"
+                                                                            @click="addQuestion(block)"
+                                                                        >
+                                                                            <Plus :size="18" />
+                                                                            Add question
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
                                                             <template v-else>
                                                                 <FormattingHelp />
                                                                 <ContentPhotoScanner
@@ -1771,6 +2176,12 @@
                                                         <div class="wizard-preview-previous-answer">
                                                             <span>{{ block.previousAnswerLabel || 'Previous answer' }}</span>
                                                             <strong>Saved answer will appear here.</strong>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else-if="block.type === 'previous-multi-answer'">
+                                                        <div class="wizard-preview-previous-answer">
+                                                            <span>Previous multi answer</span>
+                                                            <strong>Saved answers will appear here with questions below each.</strong>
                                                         </div>
                                                     </template>
                                                     <template v-else>
@@ -2182,7 +2593,7 @@ type OpenStepthrough = {
 };
 
 type ProgressButton = 'start' | 'next' | 'done';
-type BlockType = 'content' | 'questions' | 'multi-answer' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer';
+type BlockType = 'content' | 'questions' | 'multi-answer' | 'notes' | 'hero' | 'quote' | 'standout' | 'image' | 'resource' | 'previous-answer' | 'previous-multi-answer';
 type QuestionInputType = 'text' | 'textarea' | 'sum-chips' | 'number' | 'date';
 type ImageSize = 'full' | 'large' | 'medium' | 'small';
 type ImageAspectRatio = 'original' | '1:1' | '4:3' | '3:4' | '16:9' | '21:9';
@@ -2203,6 +2614,8 @@ type WizardBlock = {
     answerFields: MultiAnswerField[];
     previousAnswerKey: string;
     previousAnswerLabel: string;
+    previousMultiAnswerKey: string;
+    previousMultiAnswerQuestions: WizardQuestion[];
     sectionTitle: string;
     hasFrame: boolean;
 };
@@ -2324,6 +2737,7 @@ const blockTypes = [
     { value: 'image' as const, label: 'image block', icon: Image },
     { value: 'resource' as const, label: 'resource link', icon: Link },
     { value: 'previous-answer' as const, label: 'previous answer', icon: ListChecks },
+    { value: 'previous-multi-answer' as const, label: 'previous multi answer', icon: ListChecks },
 ];
 
 const draft = reactive<WizardDraft>(createInitialDraft());
@@ -2471,10 +2885,10 @@ function createQuestion(label = 'Question', placeholder = 'Answer', inputType: Q
         useGlobalSumChipOptions: false,
         sumChipShowInput: true,
         optionGroups: inputType === 'sum-chips' ? defaultSumChipOptionGroups() : [],
-        descriptionType: 'text',
+        descriptionType: 'text' as const,
         description: '',
         descriptionPreviousAnswerKey: '',
-    };
+    } satisfies WizardQuestion;
 }
 
 function createAnswerField(placeholder = 'Answer 1') {
@@ -2496,6 +2910,7 @@ function createBlock(type: BlockType): WizardBlock {
         image: '',
         resource: '',
         'previous-answer': '',
+        'previous-multi-answer': '',
     };
 
     return {
@@ -2513,12 +2928,14 @@ function createBlock(type: BlockType): WizardBlock {
         answerFields: type === 'multi-answer' ? [createAnswerField()] : [],
         previousAnswerKey: '',
         previousAnswerLabel: 'Previous answer',
+        previousMultiAnswerKey: '',
+        previousMultiAnswerQuestions: [],
         sectionTitle: '',
         hasFrame: false,
     };
 }
 
-function createQuestionBlock(questions = [createQuestion()]): WizardBlock {
+function createQuestionBlock(questions: WizardQuestion[] = [createQuestion()]): WizardBlock {
     return {
         ...createBlock('questions'),
         questions,
@@ -2755,11 +3172,19 @@ function removeSubPage(page: WizardPage, index: number) {
 }
 
 function addQuestion(target: WizardBlock) {
-    target.questions.push(createQuestion());
+    if (target.type === 'previous-multi-answer') {
+        target.previousMultiAnswerQuestions.push(createQuestion());
+    } else {
+        target.questions.push(createQuestion());
+    }
 }
 
 function removeQuestion(target: WizardBlock, index: number) {
-    target.questions.splice(index, 1);
+    if (target.type === 'previous-multi-answer') {
+        target.previousMultiAnswerQuestions.splice(index, 1);
+    } else {
+        target.questions.splice(index, 1);
+    }
 }
 
 function syncQuestionInputType(block: WizardBlock, question: WizardQuestion) {
@@ -2773,7 +3198,8 @@ function syncQuestionInputType(block: WizardBlock, question: WizardQuestion) {
 }
 
 function hasSumChipQuestions(block: WizardBlock) {
-    return block.questions.some((question) => question.inputType === 'sum-chips');
+    return block.questions.some((question) => question.inputType === 'sum-chips')
+        || block.previousMultiAnswerQuestions.some((question) => question.inputType === 'sum-chips');
 }
 
 function syncQuestionGlobalSumChipOptions(block: WizardBlock, question: WizardQuestion) {
@@ -2899,7 +3325,7 @@ function syncBlockType(block: WizardBlock) {
     block.imageFit = block.type === 'image' ? normalizeImageFit(block.imageFit) : defaults.imageFit;
     block.opensInModal = block.type === 'resource' ? block.opensInModal : false;
     block.globalSumChipOptionGroups =
-        block.type === 'questions' && hasSumChipQuestions(block)
+        block.type === 'questions' || block.type === 'previous-multi-answer' && hasSumChipQuestions(block)
             ? block.globalSumChipOptionGroups.length
                 ? block.globalSumChipOptionGroups
                 : defaultSumChipOptionGroups()
@@ -2908,11 +3334,13 @@ function syncBlockType(block: WizardBlock) {
     block.answerFields = block.type === 'multi-answer' ? block.answerFields.length ? block.answerFields : defaults.answerFields : [];
     block.previousAnswerKey = block.type === 'previous-answer' ? block.previousAnswerKey : '';
     block.previousAnswerLabel = block.type === 'previous-answer' ? block.previousAnswerLabel || defaults.previousAnswerLabel : '';
+    block.previousMultiAnswerKey = block.type === 'previous-multi-answer' ? block.previousMultiAnswerKey : '';
+    block.previousMultiAnswerQuestions = block.type === 'previous-multi-answer' ? block.previousMultiAnswerQuestions.length ? block.previousMultiAnswerQuestions : defaults.previousMultiAnswerQuestions : [];
     block.hasFrame = block.type !== 'content' && canFrameBlock(block.type) ? block.hasFrame : false;
 }
 
 function canFrameBlock(type: BlockType) {
-    return type === 'content' || type === 'questions' || type === 'multi-answer' || type === 'notes' || type === 'image';
+    return type === 'content' || type === 'questions' || type === 'multi-answer' || type === 'notes' || type === 'image' || type === 'previous-multi-answer';
 }
 
 function blockTypeTitle(type: BlockType) {
@@ -2927,6 +3355,7 @@ function blockTypeTitle(type: BlockType) {
         image: 'Image',
         resource: 'Resource',
         'previous-answer': 'Previous answer',
+        'previous-multi-answer': 'Previous multi answer',
     };
 
     return titles[type];
@@ -2944,6 +3373,7 @@ function blockTypeDescription(type: BlockType) {
         image: 'A visual with an optional caption.',
         resource: 'A link or reference item for the user.',
         'previous-answer': 'Show an answer saved earlier in the step-through.',
+        'previous-multi-answer': 'Show answers from a multi-answer block with follow-up questions.',
     };
 
     return descriptions[type];
@@ -2961,6 +3391,7 @@ function blockPlaceholder(type: BlockType) {
         image: 'Image URL or image block note',
         resource: 'Resource link or modal page title',
         'previous-answer': 'Bring an earlier answer forward',
+        'previous-multi-answer': '',
     };
 
     return placeholders[type];
@@ -2990,13 +3421,17 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                 imageFit: normalizeImageFit(block.imageFit),
                 opensInModal: Boolean(block.opensInModal),
                 globalSumChipOptionGroups:
-                    type === 'questions'
+                    type === 'questions' || type === 'previous-multi-answer'
                         ? normalizeSumChipOptionGroups(block.globalSumChipOptionGroups, false)
                         : [],
                 questions: type === 'questions' ? questions.length ? questions : [createQuestion()] : [],
                 answerFields: type === 'multi-answer' ? answerFields.length ? answerFields : [createAnswerField()] : [],
                 previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
                 previousAnswerLabel: type === 'previous-answer' && typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : 'Previous answer',
+                previousMultiAnswerKey: type === 'previous-multi-answer' && typeof block.previousMultiAnswerKey === 'string' ? block.previousMultiAnswerKey : '',
+                previousMultiAnswerQuestions: type === 'previous-multi-answer' && Array.isArray(block.previousMultiAnswerQuestions)
+                    ? normalizeQuestions(block.previousMultiAnswerQuestions)
+                    : [],
                 sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
                 hasFrame: type !== 'content' && canFrameBlock(type) && Boolean(block.hasFrame),
             };
@@ -3116,7 +3551,8 @@ function normalizeBlockType(value: unknown): BlockType {
         value === 'standout' ||
         value === 'image' ||
         value === 'resource' ||
-        value === 'previous-answer'
+        value === 'previous-answer' ||
+        value === 'previous-multi-answer'
     ) {
         return value;
     }
@@ -3213,6 +3649,33 @@ function answerReferenceOptionsFor(targetBlock: WizardBlock) {
     }
 
     return foundTarget ? options : collectAnswerScreens(draft.pages).flatMap(({ blocks, screenKey, screenLabel }) => blocks.flatMap((block) => collectBlockAnswerOptions(block, screenKey, screenLabel)));
+}
+
+function multiAnswerBlockOptionsFor(targetBlock: WizardBlock) {
+    const options: { key: string; label: string }[] = [];
+    let foundTarget = false;
+
+    for (const { blocks, screenKey, screenLabel } of collectAnswerScreens(draft.pages)) {
+        for (const block of blocks) {
+            if (block.id === targetBlock.id) {
+                foundTarget = true;
+                break;
+            }
+
+            if (block.type === 'multi-answer') {
+                options.push({
+                    key: `${screenKey}:${block.id}`,
+                    label: `${screenLabel} - ${block.content || 'Multi answer'}`,
+                });
+            }
+        }
+
+        if (foundTarget) {
+            break;
+        }
+    }
+
+    return options;
 }
 
 function collectAnswerScreens(pages: WizardPage[]) {

@@ -1,2 +1,2 @@
-export { deleteProjectRecords };
-export { deleteWalkthroughInstance };
+// export { deleteProjectRecords };
+// export { deleteWalkthroughInstance };

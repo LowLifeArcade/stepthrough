@@ -530,6 +530,27 @@
                                         @input="scheduleInstanceSave"
                                     />
                                 </label>
+                                <label
+                                    v-for="n in extraFieldCount(currentScreen.key, block.id)"
+                                    :key="`extra-${n}`"
+                                    class="live-field"
+                                >
+                                    <input
+                                        v-model="answers[answerKey(currentScreen.key, `_extra_${block.id}_${n - 1}`)]"
+                                        type="text"
+                                        :aria-label="`Answer ${block.answerFields.length + n}`"
+                                        :placeholder="`Answer ${block.answerFields.length + n}`"
+                                        @input="scheduleInstanceSave"
+                                    />
+                                </label>
+                                <button
+                                    type="button"
+                                    class="secondary-button"
+                                    @click="addExtraField(currentScreen.key, block.id)"
+                                >
+                                    <Plus :size="18" />
+                                    Add answer
+                                </button>
                             </template>
                             <template v-else-if="block.type === 'notes'">
                                 <label class="live-field">
@@ -547,7 +568,154 @@
                                     <strong>{{ previousAnswerValue(block) || 'No answer saved yet.' }}</strong>
                                 </article>
                             </template>
-                            <template v-else>
+                            <template v-else-if="block.type === 'previous-multi-answer'">
+                                <section
+                                    v-for="(item, answerIndex) in previousMultiAnswerValues(block)"
+                                    :key="answerIndex"
+                                    class="previous-multi-answer-item"
+                                >
+                                     <article class="previous-answer-block">
+                                        <span>Answer {{ answerIndex + 1 }}</span>
+                                        <strong>{{ item.value || '(empty)' }}</strong>
+                                    </article>
+                                    <div
+                                        v-for="question in block.previousMultiAnswerQuestions"
+                                        :key="question.id"
+                                        class="live-field"
+                                    >
+                                        <div
+                                            v-if="question.descriptionType === 'text' && question.description"
+                                            class="question-description"
+                                        >
+                                             {{ question.description }}
+                                        </div>
+                                        <div
+                                            v-else-if="question.descriptionType === 'previous-answer' && question.descriptionPreviousAnswerKey"
+                                            class="question-description"
+                                        >
+                                             {{ questionDescriptionValue(question) }}
+                                        </div>
+                                        <span>{{ question.label }}</span>
+                                        <template v-if="question.inputType === 'sum-chips'">
+                                            <input
+                                                v-if="question.sumChipShowInput"
+                                                v-model="sumChipInputDrafts[answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`)]"
+                                                type="text"
+                                                :placeholder="question.placeholder"
+                                                @keydown="handleSumChipKeydown($event, answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`))"
+                                            />
+                                            <small
+                                                v-if="question.sumChipShowInput"
+                                                class="sum-chip-input-hint"
+                                            >
+                                                Press Tab or Enter to add a chip. Each field keeps one of each answer.
+                                            </small>
+                                            <button
+                                                class="sum-chip-options-link"
+                                                type="button"
+                                                @click="openSumChipOptions(block, question, answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`))"
+                                            >
+                                                Open options
+                                            </button>
+                                            <small
+                                                v-if="sumChipDuplicateMessages[answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`)]"
+                                                class="sum-chip-input-hint warning"
+                                                aria-live="polite"
+                                            >
+                                                {{ sumChipDuplicateMessages[answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`)] }}
+                                            </small>
+                                            <div
+                                                v-if="chipAnswerValue(answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`)).length"
+                                                class="sum-chip-list"
+                                            >
+                                                <span
+                                                    v-for="(chip, chipIndex) in chipAnswerValue(answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`))"
+                                                    :key="`${chip}-${chipIndex}`"
+                                                    class="sum-chip removable"
+                                                >
+                                                    {{ chip }}
+                                                    <button
+                                                        type="button"
+                                                        :aria-label="`Remove ${chip}`"
+                                                        @click="removeSumChip(answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`), chipIndex)"
+                                                    >
+                                                        <X :size="14" />
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        </template>
+                                        <textarea
+                                            v-else-if="question.inputType === 'textarea'"
+                                            v-model="answers[answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`)]"
+                                            :placeholder="question.placeholder"
+                                            @input="scheduleInstanceSave"
+                                        ></textarea>
+                                        <input
+                                            v-else
+                                            v-model="answers[answerKey(currentScreen.key, `${block.id}:${answerIndex}:${question.id}`)]"
+                                            :type="question.inputType"
+                                            :placeholder="question.placeholder"
+                                            @input="scheduleInstanceSave"
+                                        />
+                                    </div>
+                                </section>
+                                 <section
+                                     v-if="hasSumChipQuestions(block)"
+                                     class="sum-chip-total"
+                                     aria-label="Sum chip totals"
+                                 >
+                                     <header>
+                                         <strong>Totals</strong>
+                                         <div class="sum-chip-view-toggle">
+                                             <button
+                                                 type="button"
+                                                 title="Chips view"
+                                                 aria-label="Chips view"
+                                                 :class="{ active: sumChipBlockViewMode(block.id) === 'chips' }"
+                                                 @click="setSumChipBlockViewMode(block.id, 'chips')"
+                                             >
+                                                 <LayoutGrid :size="16" />
+                                             </button>
+                                             <button
+                                                 type="button"
+                                                 title="List view"
+                                                 aria-label="List view"
+                                                 :class="{ active: sumChipBlockViewMode(block.id) === 'list' }"
+                                                 @click="setSumChipBlockViewMode(block.id, 'list')"
+                                             >
+                                                 <List :size="16" />
+                                             </button>
+                                         </div>
+                                     </header>
+                                     <div
+                                         v-if="sumChipTotals(currentScreen.key, block).length && sumChipBlockViewMode(block.id) === 'chips'"
+                                         class="sum-chip-total-chips"
+                                     >
+                                         <span
+                                             v-for="total in sumChipTotals(currentScreen.key, block)"
+                                             :key="total.normalized"
+                                             class="sum-chip counted"
+                                         >
+                                             {{ total.label }}
+                                             <strong>{{ total.count }}</strong>
+                                         </span>
+                                     </div>
+                                     <ul
+                                         v-else-if="sumChipTotals(currentScreen.key, block).length"
+                                         class="sum-chip-total-list"
+                                     >
+                                         <li
+                                             v-for="total in sumChipTotals(currentScreen.key, block)"
+                                             :key="total.normalized"
+                                         >
+                                             <span>{{ total.label }}</span>
+                                             <strong>{{ total.count }}</strong>
+                                         </li>
+                                     </ul>
+                                     <p v-else>No chips yet.</p>
+                                 </section>
+                             </template>
+                             <template v-else>
                                 <div
                                     class="formatted-content"
                                     v-html="renderFormattedContent(block.content)"
@@ -698,7 +866,8 @@ type BlockType =
     | 'standout'
     | 'image'
     | 'resource'
-    | 'previous-answer';
+    | 'previous-answer'
+    | 'previous-multi-answer';
 
 type LiveQuestion = {
     id: string;
@@ -742,6 +911,8 @@ type LiveBlock = {
     answerFields: LiveAnswerField[];
     previousAnswerKey: string;
     previousAnswerLabel: string;
+    previousMultiAnswerKey: string;
+    previousMultiAnswerQuestions: LiveQuestion[];
     sectionTitle: string;
     hasFrame: boolean;
 };
@@ -965,6 +1136,8 @@ function createEmptyScreen(): LiveScreen {
                 answerFields: [],
                 previousAnswerKey: '',
                 previousAnswerLabel: '',
+                previousMultiAnswerKey: '',
+                previousMultiAnswerQuestions: [],
                 sectionTitle: '',
                 hasFrame: false,
             },
@@ -989,20 +1162,22 @@ function normalizeBlocks(value: unknown): LiveBlock[] {
             imageAspectRatio: normalizeImageAspectRatio(block.imageAspectRatio),
             imageFit: normalizeImageFit(block.imageFit),
             globalSumChipOptionGroups:
-                normalizeBlockType(block.type) === 'questions'
+                normalizeBlockType(block.type) === 'questions' || normalizeBlockType(block.type) === 'previous-multi-answer'
                     ? normalizeSumChipOptionGroups(block.globalSumChipOptionGroups, false)
                     : [],
             questions: normalizeQuestions(block.questions),
             answerFields: normalizeAnswerFields(block.answerFields),
             previousAnswerKey: typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
             previousAnswerLabel: typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : '',
+            previousMultiAnswerKey: typeof block.previousMultiAnswerKey === 'string' ? block.previousMultiAnswerKey : '',
+            previousMultiAnswerQuestions: normalizeQuestions(block.previousMultiAnswerQuestions),
             sectionTitle: typeof block.sectionTitle === 'string' ? block.sectionTitle : '',
             hasFrame: canFrameBlock(normalizeBlockType(block.type)) && Boolean(block.hasFrame),
         }));
 }
 
 function canFrameBlock(type: BlockType) {
-    return type === 'content' || type === 'questions' || type === 'multi-answer' || type === 'notes' || type === 'image';
+    return type === 'content' || type === 'questions' || type === 'multi-answer' || type === 'notes' || type === 'image' || type === 'previous-multi-answer';
 }
 
 function normalizeQuestions(value: unknown): LiveQuestion[] {
@@ -1079,7 +1254,8 @@ function normalizeBlockType(value: unknown): BlockType {
         value === 'standout' ||
         value === 'image' ||
         value === 'resource' ||
-        value === 'previous-answer'
+        value === 'previous-answer' ||
+        value === 'previous-multi-answer'
     ) {
         return value;
     }
@@ -1174,6 +1350,46 @@ function previousAnswerValue(block: LiveBlock) {
     return Array.isArray(value) ? value.join(', ') : value || '';
 }
 
+function previousMultiAnswerValues(block: LiveBlock) {
+    if (!block?.previousMultiAnswerKey) {
+        return [];
+    }
+
+    const parts = block.previousMultiAnswerKey?.split(':');
+    if (parts?.length !== 2) {
+        return [];
+    }
+
+    const screenKey = parts[0] as string;
+    const blockId = parts[1] as string;
+    const screen = screens.value.find((candidate) => candidate.key === screenKey);
+
+    if (!screen) {
+        return [];
+    }
+
+    const sourceBlock = screen.blocks.find((candidate) => candidate.id === blockId);
+
+    if (!sourceBlock) {
+        return [];
+    }
+
+    const items = sourceBlock.answerFields.map((field, index) => ({
+        index,
+        value: answers[answerKey(screenKey, field.id)] || '',
+    }));
+
+    const extraCount = extraFieldCount(screenKey, blockId);
+    for (let i = 0; i < extraCount; i++) {
+        items.push({
+            index: items.length,
+            value: answers[answerKey(screenKey, `_extra_${blockId}_${i}`)] || '',
+        });
+    }
+
+    return items;
+}
+
 function questionDescriptionValue(question: LiveQuestion) {
     if (question.descriptionType === 'text') {
         return question.description;
@@ -1190,6 +1406,24 @@ function questionDescriptionValue(question: LiveQuestion) {
     }
 
     return '';
+}
+
+function extraFieldCount(screenKey: string, blockId: string): number {
+    const key = `_extra_count:${screenKey}:${blockId}`;
+    const value = answers[key];
+
+    if (typeof value === 'string') {
+        const count = parseInt(value, 10);
+        return isNaN(count) ? 0 : count;
+    }
+
+    return 0;
+}
+
+function addExtraField(screenKey: string, blockId: string) {
+    const key = `_extra_count:${screenKey}:${blockId}`;
+    answers[key] = String(extraFieldCount(screenKey, blockId) + 1);
+    scheduleInstanceSave();
 }
 
 function chipAnswerValue(key: string) {
@@ -1298,7 +1532,8 @@ function sumChipOptionGroupsForQuestion(block: LiveBlock, question: LiveQuestion
 }
 
 function hasSumChipQuestions(block: LiveBlock) {
-    return block.questions.some((question) => question.inputType === 'sum-chips');
+    return block.questions.some((question) => question.inputType === 'sum-chips')
+        || block.previousMultiAnswerQuestions.some((question) => question.inputType === 'sum-chips');
 }
 
 function sumChipBlockViewMode(blockId: string) {
@@ -1312,23 +1547,50 @@ function setSumChipBlockViewMode(blockId: string, mode: 'chips' | 'list') {
 function sumChipTotals(screenKey: string, block: LiveBlock): SumChipTotal[] {
     const totals = new Map<string, SumChipTotal>();
 
-    for (const question of block.questions) {
-        if (question.inputType !== 'sum-chips') {
-            continue;
+    if (block.type === 'previous-multi-answer') {
+        const items = previousMultiAnswerValues(block);
+
+        for (const question of block.previousMultiAnswerQuestions) {
+            if (question.inputType !== 'sum-chips') {
+                continue;
+            }
+
+            for (const item of items) {
+                for (const chip of chipAnswerValue(answerKey(screenKey, `${block.id}:${item.index}:${question.id}`))) {
+                    const normalized = normalizeSumChip(chip);
+                    const existing = totals.get(normalized);
+
+                    if (existing) {
+                        existing.count += 1;
+                    } else {
+                        totals.set(normalized, {
+                            normalized,
+                            label: chip.trim(),
+                            count: 1,
+                        });
+                    }
+                }
+            }
         }
+    } else {
+        for (const question of block.questions) {
+            if (question.inputType !== 'sum-chips') {
+                continue;
+            }
 
-        for (const chip of chipAnswerValue(answerKey(screenKey, question.id))) {
-            const normalized = normalizeSumChip(chip);
-            const existing = totals.get(normalized);
+            for (const chip of chipAnswerValue(answerKey(screenKey, question.id))) {
+                const normalized = normalizeSumChip(chip);
+                const existing = totals.get(normalized);
 
-            if (existing) {
-                existing.count += 1;
-            } else {
-                totals.set(normalized, {
-                    normalized,
-                    label: chip.trim(),
-                    count: 1,
-                });
+                if (existing) {
+                    existing.count += 1;
+                } else {
+                    totals.set(normalized, {
+                        normalized,
+                        label: chip.trim(),
+                        count: 1,
+                    });
+                }
             }
         }
     }
