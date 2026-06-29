@@ -1,14 +1,10 @@
 import { uuidv7 } from '~~/server/utils/uuid';
 
 export default defineEventHandler(async (event) => {
-    const { user } = await getUserSession(event);
+    const user = await requireAuthenticatedUser(event, 'Sign in to start a walkthrough instance');
     const projectId = getRouterParam(event, 'id');
     const body = await readBody(event);
     const title = String(body?.title || '').trim();
-
-    if (!user) {
-        throw createError({ statusCode: 401, message: 'Sign in to start a walkthrough instance' });
-    }
 
     if (!projectId) {
         throw createError({ statusCode: 422, message: 'Project id is required' });

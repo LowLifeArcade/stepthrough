@@ -1,11 +1,7 @@
 import { deleteWalkthroughInstance } from '~~/server/utils/deleteProject';
 
 export default defineEventHandler(async (event) => {
-    const { user } = await getUserSession(event);
-
-    if (!user) {
-        throw createError({ statusCode: 401, message: 'Unauthorized' });
-    }
+    const user = await requireAuthenticatedUser(event);
 
     const projectId = getRouterParam(event, 'id');
     const instanceId = getRouterParam(event, 'instanceId');

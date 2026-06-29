@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-    const { user } = await getUserSession(event);
+    const user = await getAuthenticatedUser(event);
     const id = getRouterParam(event, 'id');
 
     if (!id) {

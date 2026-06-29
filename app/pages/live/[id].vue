@@ -806,10 +806,17 @@
                 </div>
             </Transition>
         </Teleport>
+        <SessionExpiredDialog
+            :open="sessionExpired"
+            :login-url="loginUrl()"
+        />
     </main>
 </template>
 
 <script setup lang="ts">
+const sessionExpired = ref(false);
+
+import { isUnauthorizedError } from '~/utils/auth';
 import {
     ArrowLeft,
     ArrowRight,
@@ -1818,13 +1825,11 @@ async function saveInstance() {
 }
 
 function redirectToLoginIfUnauthorized(error: any) {
-    const statusCode = error?.statusCode || error?.data?.statusCode || error?.response?.status;
-
-    if (statusCode !== 401) {
+    if (!isUnauthorizedError(error)) {
         return false;
     }
 
-    navigateTo(loginUrl(), { external: true });
+    sessionExpired.value = true;
     return true;
 }
 

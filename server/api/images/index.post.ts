@@ -11,11 +11,7 @@ const extensionByType: Record<string, string> = {
 };
 
 export default defineEventHandler(async (event) => {
-    const { user } = await getUserSession(event);
-
-    if (!user) {
-        throw createError({ statusCode: 401, message: 'Unauthorized' });
-    }
+    const user = await requireAuthenticatedUser(event);
 
     const formData = await readMultipartFormData(event);
     const file = formData?.find((part) => part.name === 'image' && part.data?.byteLength);

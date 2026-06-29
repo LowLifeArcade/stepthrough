@@ -2542,11 +2542,16 @@
                 </section>
             </div>
         </Teleport>
+        <SessionExpiredDialog
+            :open="sessionExpired"
+            :login-url="loginUrl()"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { renderFormattedContent } from '~/utils/contentFormatting';
+import { isUnauthorizedError } from '~/utils/auth';
 import {
     ArrowLeft,
     ArrowRight,
@@ -2699,6 +2704,7 @@ type ImageUploadResponse = {
 const wizardStorageKey = 'stepthrough:create-wizard';
 const pendingDashboardActionKey = 'stepthrough:pending-dashboard-action';
 const { loggedIn, user } = useUserSession();
+const sessionExpired = ref(false);
 const showCreate = ref(false);
 const creating = ref(false);
 const activeDashboardTab = ref<'projects' | 'templates'>('projects');
@@ -2745,18 +2751,29 @@ const blockTypes = [
 
 const draft = reactive<WizardDraft>(createInitialDraft());
 
-const { data, pending, refresh } = await useFetch<Project[]>('/api/projects', {
+const { data, pending, error: projectsError, refresh } = await useFetch<Project[]>('/api/projects', {
     default: () => [],
     immediate: loggedIn.value,
 });
 const {
     data: openStepthroughData,
     pending: openStepthroughsPending,
+    error: openStepthroughsError,
     refresh: refreshOpenStepthroughs,
 } = await useFetch<OpenStepthrough[]>('/api/walkthrough-instances/open', {
     default: () => [],
     immediate: loggedIn.value,
 });
+
+watch([projectsError, openStepthroughsError], ([projectError, openError]) => {
+    if (projectError) {
+        redirectToLoginIfUnauthorized(projectError);
+    }
+
+    if (openError) {
+        redirectToLoginIfUnauthorized(openError);
+    }
+}, { immediate: true });
 
 const projects = computed(() => data.value || []);
 const openStepthroughs = computed(() => openStepthroughData.value || []);
@@ -2921,7 +2938,7 @@ function createBlock(type: BlockType): WizardBlock {
         type,
         content: contentByType[type],
         imageUrl: type === 'image' ? 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94' : '',
-        caption: type === 'image' ? 'A visual reference for this step.' : '',
+        caption: '',
         imageSize: 'full',
         imageAspectRatio: 'original',
         imageFit: 'cover',
@@ -4012,13 +4029,11 @@ async function replayPendingDashboardAction() {
 }
 
 function redirectToLoginIfUnauthorized(error: any) {
-    const statusCode = error?.statusCode || error?.data?.statusCode || error?.response?.status;
-
-    if (statusCode !== 401) {
+    if (!isUnauthorizedError(error)) {
         return false;
     }
 
-    navigateTo(loginUrl(), { external: true });
+    sessionExpired.value = true;
     return true;
 }
 

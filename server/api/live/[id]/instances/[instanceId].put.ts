@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-    const { user } = await getUserSession(event);
+    const user = await requireAuthenticatedUser(event, 'Sign in to save this walkthrough instance');
     const projectId = getRouterParam(event, 'id');
     const instanceId = getRouterParam(event, 'instanceId');
     const body = await readBody(event);
@@ -9,10 +9,6 @@ export default defineEventHandler(async (event) => {
 
     if (!projectId || !instanceId) {
         throw createError({ statusCode: 422, message: 'Project id and instance id are required' });
-    }
-
-    if (!user) {
-        throw createError({ statusCode: 401, message: 'Sign in to save this walkthrough instance' });
     }
 
     const db = useDatabase();

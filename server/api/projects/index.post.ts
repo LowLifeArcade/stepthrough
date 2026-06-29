@@ -1,11 +1,7 @@
 import { uuidv7 } from '~~/server/utils/uuid';
 
 export default defineEventHandler(async (event) => {
-    const { user } = await getUserSession(event);
-
-    if (!user) {
-        throw createError({ statusCode: 401, message: 'Unauthorized' });
-    }
+    const user = await requireAuthenticatedUser(event);
 
     const body = await readBody(event);
     const title = String(body?.title || '').trim();
