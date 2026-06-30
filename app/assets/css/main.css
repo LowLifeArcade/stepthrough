@@ -2701,6 +2701,10 @@ body {
     padding: 1.2rem;
 }
 
+.live-block-previous-multi-answer {
+    gap: 2rem;
+}
+
 .previous-answer-block {
     display: grid;
     gap: 0.5rem;
@@ -2738,9 +2742,14 @@ body {
     }
 }
 
-/* .live-field + .live-field {
-    margin-top: 1rem;
+/* .live-field.question + .live-field.question {
+    margin-bottom: 1rem;
 } */
+
+.previous-multi-answer-item {
+    display: grid;
+    gap: 2rem;
+}
 
 .live-field span {
     color: #342619;
