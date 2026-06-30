@@ -581,7 +581,7 @@
                                     <div
                                         v-for="question in block.previousMultiAnswerQuestions"
                                         :key="question.id"
-                                        class="live-field"
+                                        class="live-field question"
                                     >
                                         <span>{{ question.label }}</span>
                                         <div
