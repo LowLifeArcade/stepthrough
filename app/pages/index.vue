@@ -2552,6 +2552,7 @@
 <script setup lang="ts">
 import { renderFormattedContent } from '~/utils/contentFormatting';
 import { isUnauthorizedError } from '~/utils/auth';
+import { legacyQuestionsForBlocks, normalizedItemsOrDefault } from '~/utils/blueprintMigration';
 import {
     ArrowLeft,
     ArrowRight,
@@ -2977,12 +2978,24 @@ function normalizeDraft(value: Partial<WizardDraft>): WizardDraft {
             ...createPage(index),
             ...page,
             button: normalizeButton(page.button, index),
-            blocks: normalizeBlocks(page.blocks, normalizeQuestions((page as Record<string, unknown>).questions, (page as Record<string, unknown>).question)),
+            blocks: normalizeBlocks(
+                page.blocks,
+                legacyQuestionsForBlocks(
+                    page.blocks,
+                    normalizeQuestions((page as Record<string, unknown>).questions, (page as Record<string, unknown>).question),
+                ),
+            ),
             subPages: Array.isArray(page.subPages)
                 ? page.subPages.map((subPage, subIndex) => ({
                       ...createSubPage(subIndex),
                       ...subPage,
-                      blocks: normalizeBlocks(subPage.blocks, normalizeQuestions((subPage as Record<string, unknown>).questions, subPage.question)),
+                      blocks: normalizeBlocks(
+                          subPage.blocks,
+                          legacyQuestionsForBlocks(
+                              subPage.blocks,
+                              normalizeQuestions((subPage as Record<string, unknown>).questions, subPage.question),
+                          ),
+                      ),
                   }))
                 : [],
         })),
@@ -3444,8 +3457,12 @@ function normalizeBlocks(value: unknown, migratedQuestions: WizardQuestion[] = [
                     type === 'questions' || type === 'previous-multi-answer'
                         ? normalizeSumChipOptionGroups(block.globalSumChipOptionGroups, false)
                         : [],
-                questions: type === 'questions' ? questions.length ? questions : [createQuestion()] : [],
-                answerFields: type === 'multi-answer' ? answerFields.length ? answerFields : [createAnswerField()] : [],
+                questions: type === 'questions'
+                    ? normalizedItemsOrDefault(block.questions, questions, createQuestion)
+                    : [],
+                answerFields: type === 'multi-answer'
+                    ? normalizedItemsOrDefault(block.answerFields, answerFields, createAnswerField)
+                    : [],
                 previousAnswerKey: type === 'previous-answer' && typeof block.previousAnswerKey === 'string' ? block.previousAnswerKey : '',
                 previousAnswerLabel: type === 'previous-answer' && typeof block.previousAnswerLabel === 'string' ? block.previousAnswerLabel : 'Previous answer',
                 previousMultiAnswerKey: type === 'previous-multi-answer' && typeof block.previousMultiAnswerKey === 'string' ? block.previousMultiAnswerKey : '',
