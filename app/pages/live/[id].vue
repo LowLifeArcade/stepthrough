@@ -1977,6 +1977,17 @@ function handleMobileNavKeydown(event: KeyboardEvent) {
 function selectScreen(index: number) {
     currentIndex.value = index;
     closeMobileNav();
+    scrollLivePageToTop();
+}
+
+function scrollLivePageToTop() {
+    nextTick(() => {
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'smooth',
+        });
+    });
 }
 
 function goForward() {
@@ -1984,27 +1995,32 @@ function goForward() {
         currentIndex.value = 0;
         isFinished.value = false;
         scheduleInstanceSave();
+        scrollLivePageToTop();
         return;
     }
 
     if (currentIndex.value < screens.value.length - 1) {
         currentIndex.value += 1;
+        scrollLivePageToTop();
         return;
     }
 
     isFinished.value = true;
     scheduleInstanceSave();
+    scrollLivePageToTop();
 }
 
 function goBack() {
     if (isFinished.value) {
         isFinished.value = false;
         scheduleInstanceSave();
+        scrollLivePageToTop();
         return;
     }
 
     if (currentIndex.value > 0) {
         currentIndex.value -= 1;
+        scrollLivePageToTop();
     }
 }
 
