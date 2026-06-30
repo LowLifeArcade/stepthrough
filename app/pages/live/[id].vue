@@ -378,8 +378,9 @@
                                 <div
                                     v-for="question in block.questions"
                                     :key="question.id"
-                                    class="live-field"
+                                    class="live-field question"
                                 >
+                                     <span>{{ question.label }}</span>
                                      <div
                                          v-if="question.descriptionType === 'text' && question.description"
                                          class="question-description"
@@ -392,7 +393,6 @@
                                      >
                                          {{ questionDescriptionValue(question) }}
                                      </div>
-                                     <span>{{ question.label }}</span>
                                      <template v-if="question.inputType === 'sum-chips'">
                                         <input
                                             v-if="question.sumChipShowInput"
@@ -583,6 +583,7 @@
                                         :key="question.id"
                                         class="live-field"
                                     >
+                                        <span>{{ question.label }}</span>
                                         <div
                                             v-if="question.descriptionType === 'text' && question.description"
                                             class="question-description"
@@ -595,7 +596,6 @@
                                         >
                                              {{ questionDescriptionValue(question) }}
                                         </div>
-                                        <span>{{ question.label }}</span>
                                         <template v-if="question.inputType === 'sum-chips'">
                                             <input
                                                 v-if="question.sumChipShowInput"
