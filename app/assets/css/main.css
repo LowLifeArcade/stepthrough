@@ -2660,6 +2660,10 @@ body {
     padding: 1.2rem;
 }
 
+.live-block-multi-answer {
+    gap: 1.4rem;
+}
+
 .live-block-hero .live-block-title {
     color: white;
 }
@@ -2730,9 +2734,9 @@ body {
     }
 }
 
-.live-field + .live-field {
+/* .live-field + .live-field {
     margin-top: 1rem;
-}
+} */
 
 .live-field span {
     color: #342619;
