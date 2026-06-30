@@ -1352,6 +1352,10 @@ function previousAnswerValue(block: LiveBlock) {
         return previousSumChipTotalsValue(block.previousAnswerKey);
     }
 
+    if (isPreviousMultiQuestionKey(block.previousAnswerKey)) {
+        return previousMultiQuestionValue(block.previousAnswerKey);
+    }
+
     const value = answers[block.previousAnswerKey];
 
     return Array.isArray(value) ? value.join(', ') : value || '';
@@ -1405,6 +1409,10 @@ function questionDescriptionValue(question: LiveQuestion) {
     if (question.descriptionType === 'previous-answer' && question.descriptionPreviousAnswerKey) {
         if (isSumChipTotalsKey(question.descriptionPreviousAnswerKey)) {
             return previousSumChipTotalsValue(question.descriptionPreviousAnswerKey);
+        }
+
+        if (isPreviousMultiQuestionKey(question.descriptionPreviousAnswerKey)) {
+            return previousMultiQuestionValue(question.descriptionPreviousAnswerKey);
         }
 
         const value = answers[question.descriptionPreviousAnswerKey];
@@ -1650,6 +1658,44 @@ function mergeSumChipOptionGroups(groups: SumChipOptionGroup[]) {
 
 function isSumChipTotalsKey(value: string) {
     return value.startsWith('sum-chip-totals:');
+}
+
+function isPreviousMultiQuestionKey(value: string) {
+    return value.startsWith('previous-multi-question:');
+}
+
+function previousMultiQuestionValue(key: string) {
+    const parsed = parsePreviousMultiQuestionKey(key);
+
+    if (!parsed) {
+        return '';
+    }
+
+    const screen = screens.value.find((candidate) => candidate.key === parsed.screenKey);
+    const block = screen?.blocks.find((candidate) => candidate.id === parsed.blockId);
+
+    if (!screen || !block || block.type !== 'previous-multi-answer') {
+        return '';
+    }
+
+    return previousMultiAnswerValues(block)
+        .map((item) => answers[answerKey(screen.key, `${block.id}:${item.index}:${parsed.questionId}`)])
+        .flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
+        .join(', ');
+}
+
+function parsePreviousMultiQuestionKey(key: string) {
+    const parts = key.split(':');
+
+    if (parts.length !== 4 || parts[0] !== 'previous-multi-question') {
+        return null;
+    }
+
+    return {
+        screenKey: parts[1],
+        blockId: parts[2],
+        questionId: parts[3],
+    };
 }
 
 function previousSumChipTotalsValue(key: string) {

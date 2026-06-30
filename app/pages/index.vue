@@ -3883,6 +3883,24 @@ function collectBlockAnswerOptions(block: WizardBlock, screenKey: string, screen
         }));
     }
 
+    if (block.type === 'previous-multi-answer') {
+        const questionOptions = block.previousMultiAnswerQuestions.map((question) => ({
+            key: previousMultiQuestionKey(screenKey, block.id, question.id),
+            label: `${screenLabel} - ${block.sectionTitle || 'Previous multi answer'} - ${question.label || 'Question'}`,
+        }));
+        const hasSumChips = block.previousMultiAnswerQuestions.some((question) => question.inputType === 'sum-chips');
+
+        return hasSumChips
+            ? [
+                  ...questionOptions,
+                  {
+                      key: sumChipTotalsKey(screenKey, block.id),
+                      label: `${screenLabel} - ${block.sectionTitle || 'Previous multi answer'} - Sum chip totals`,
+                  },
+              ]
+            : questionOptions;
+    }
+
     if (block.type === 'notes') {
         return [
             {
@@ -3897,6 +3915,10 @@ function collectBlockAnswerOptions(block: WizardBlock, screenKey: string, screen
 
 function sumChipTotalsKey(screenKey: string, blockId: string) {
     return `sum-chip-totals:${screenKey}:${blockId}`;
+}
+
+function previousMultiQuestionKey(screenKey: string, blockId: string, questionId: string) {
+    return `previous-multi-question:${screenKey}:${blockId}:${questionId}`;
 }
 
 function normalizeButton(value: unknown, index: number): ProgressButton {
