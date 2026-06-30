@@ -477,7 +477,7 @@
                                                     title="Remove step"
                                                     aria-label="Remove step"
                                                     :disabled="draft.pages.length === 1"
-                                                    @click="removePage(index)"
+                                                    @click="requestPageRemoval(page)"
                                                 >
                                                     <Trash2 :size="18" />
                                                 </button>
@@ -2078,7 +2078,7 @@
                                                     title="Remove step page"
                                                     aria-label="Remove step page"
                                                     :disabled="activeStepPage.subPages.length === 1"
-                                                    @click="removeSubPage(activeStepPage, subIndex)"
+                                                    @click="requestSubPageRemoval(activeStepPage, subPage)"
                                                 >
                                                     <Trash2 :size="18" />
                                                 </button>
@@ -2437,6 +2437,56 @@
 
         <Teleport to="body">
             <div
+                v-if="wizardDeleteTarget"
+                class="modal-backdrop"
+                role="presentation"
+                @click.self="closeWizardDeleteModal"
+            >
+                <section
+                    class="danger-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="wizard-delete-title"
+                >
+                    <header class="danger-modal-header">
+                        <span class="detail-meta">Delete {{ wizardDeleteTarget.type === 'step' ? 'step' : 'step page' }}</span>
+                        <h2 id="wizard-delete-title">{{ wizardDeleteTarget.title }}</h2>
+                    </header>
+                    <p>
+                        This will permanently remove this {{ wizardDeleteTarget.type === 'step' ? 'step and all of its pages' : 'page' }}
+                        from the creation wizard. This action cannot be undone. Type its name exactly to confirm.
+                    </p>
+                    <label class="field">
+                        <span class="field-label">Type {{ wizardDeleteTarget.title }} to confirm</span>
+                        <input
+                            v-model="wizardDeleteConfirmation"
+                            class="text-input"
+                            type="text"
+                            autocomplete="off"
+                        />
+                    </label>
+                    <footer class="danger-modal-actions">
+                        <button
+                            class="secondary-button"
+                            type="button"
+                            @click="closeWizardDeleteModal"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            class="danger-button"
+                            type="button"
+                            :disabled="wizardDeleteConfirmation !== wizardDeleteTarget.title"
+                            @click="confirmWizardRemoval"
+                        >
+                            <Trash2 :size="18" />
+                            Delete {{ wizardDeleteTarget.type === 'step' ? 'step' : 'page' }}
+                        </button>
+                    </footer>
+                </section>
+            </div>
+
+            <div
                 v-if="publishProjectTarget"
                 class="modal-backdrop"
                 role="presentation"
@@ -2679,6 +2729,10 @@ type WizardDraft = {
     pages: WizardPage[];
 };
 
+type WizardDeleteTarget =
+    | { type: 'step'; pageId: string; title: string }
+    | { type: 'step-page'; pageId: string; subPageId: string; title: string };
+
 type PendingDashboardAction =
     | {
           type: 'save-project';
@@ -2722,6 +2776,8 @@ const deleteProjectTarget = ref<Project | null>(null);
 const deleteProjectConfirmation = ref('');
 const deleteProjectError = ref('');
 const deletingProject = ref(false);
+const wizardDeleteTarget = ref<WizardDeleteTarget | null>(null);
+const wizardDeleteConfirmation = ref('');
 const wizardShell = ref<HTMLElement | null>(null);
 const wizardStep = ref(0);
 const activeStepPageIndex = ref(0);
@@ -3154,6 +3210,66 @@ function resetDraft() {
 function addPage() {
     draft.pages.push(createPage(draft.pages.length));
     syncStepButtons();
+}
+
+function requestPageRemoval(page: WizardPage) {
+    if (draft.pages.length === 1) {
+        return;
+    }
+
+    wizardDeleteTarget.value = {
+        type: 'step',
+        pageId: page.id,
+        title: page.title || 'Untitled step',
+    };
+    wizardDeleteConfirmation.value = '';
+}
+
+function requestSubPageRemoval(page: WizardPage, subPage: WizardSubPage) {
+    if (page.subPages.length === 1) {
+        return;
+    }
+
+    wizardDeleteTarget.value = {
+        type: 'step-page',
+        pageId: page.id,
+        subPageId: subPage.id,
+        title: subPage.title || 'Untitled page',
+    };
+    wizardDeleteConfirmation.value = '';
+}
+
+function closeWizardDeleteModal() {
+    wizardDeleteTarget.value = null;
+    wizardDeleteConfirmation.value = '';
+}
+
+function confirmWizardRemoval() {
+    const target = wizardDeleteTarget.value;
+
+    if (!target || wizardDeleteConfirmation.value !== target.title) {
+        return;
+    }
+
+    const pageIndex = draft.pages.findIndex((page) => page.id === target.pageId);
+
+    if (pageIndex === -1) {
+        closeWizardDeleteModal();
+        return;
+    }
+
+    if (target.type === 'step') {
+        removePage(pageIndex);
+    } else {
+        const page = draft.pages[pageIndex];
+        const subPageIndex = page.subPages.findIndex((subPage) => subPage.id === target.subPageId);
+
+        if (subPageIndex !== -1) {
+            removeSubPage(page, subPageIndex);
+        }
+    }
+
+    closeWizardDeleteModal();
 }
 
 function removePage(index: number) {
