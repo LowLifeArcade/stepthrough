@@ -412,6 +412,22 @@
                                             >
                                                 Preview
                                             </button>
+                                            <button
+                                                class="wizard-save-button"
+                                                type="button"
+                                                :disabled="creating"
+                                                @click="onSaveProject"
+                                            >
+                                                <Check
+                                                    v-if="editingProjectId && !hasUnsavedChanges && !creating"
+                                                    :size="17"
+                                                />
+                                                <Save
+                                                    v-else
+                                                    :size="17"
+                                                />
+                                                {{ creating ? 'Saving' : 'Save' }}
+                                            </button>
                                         </div>
                                     </div>
                                     <div
@@ -471,16 +487,6 @@
                                                     <span>Returns as</span>
                                                     <strong>Continue</strong>
                                                 </div>
-                                                <button
-                                                    class="icon-button"
-                                                    type="button"
-                                                    title="Remove step"
-                                                    aria-label="Remove step"
-                                                    :disabled="draft.pages.length === 1"
-                                                    @click="requestPageRemoval(page)"
-                                                >
-                                                    <Trash2 :size="18" />
-                                                </button>
                                             </div>
                                             <section class="block-composer">
                                                 <header class="block-composer-header">
@@ -502,10 +508,18 @@
                                                         </button>
                                                     </div>
                                                 </header>
-                                                <article
+                                                <template
                                                     v-for="(block, blockIndex) in page.blocks"
                                                     :key="block.id"
+                                                >
+                                                <article
                                                     class="block-row"
+                                                    :class="{
+                                                        'block-row-dragging': draggedBlockId === block.id,
+                                                        'block-row-drag-over': dragOverBlockId === block.id && draggedBlockId !== block.id,
+                                                    }"
+                                                    @dragover.prevent="setBlockDragOver(page, blockIndex)"
+                                                    @drop.prevent="dropBlock(page, blockIndex)"
                                                 >
                                                     <div class="block-tools">
                                                         <div class="block-type-detail">
@@ -529,6 +543,17 @@
                                                             <option value="previous-answer">Previous answer</option>
                                                             <option value="previous-multi-answer">Previous multi answer</option>
                                                         </select>
+                                                        <button
+                                                            class="icon-button block-drag-handle"
+                                                            type="button"
+                                                            title="Drag to reorder section"
+                                                            aria-label="Drag to reorder section"
+                                                            draggable="true"
+                                                            @dragstart="startBlockDrag(page, blockIndex, block.id, $event)"
+                                                            @dragend="endBlockDrag"
+                                                        >
+                                                            <GripVertical :size="18" />
+                                                        </button>
                                                         <button
                                                             class="icon-button"
                                                             type="button"
@@ -1150,7 +1175,42 @@
                                                         </label>
                                                     </div>
                                                 </article>
+                                                <div
+                                                    v-if="blockIndex < page.blocks.length - 1"
+                                                    class="block-insert-row"
+                                                >
+                                                    <button
+                                                        class="block-insert-button"
+                                                        type="button"
+                                                        aria-label="Insert section"
+                                                        data-tooltip="Insert section"
+                                                        @click="insertBlock(page, blockIndex + 1)"
+                                                    >
+                                                        <Plus :size="16" />
+                                                    </button>
+                                                </div>
+                                                </template>
                                             </section>
+                                            <footer class="block-composer-footer">
+                                                <button
+                                                    class="secondary-button"
+                                                    type="button"
+                                                    @click="addBlock(page, 'content')"
+                                                >
+                                                    <Plus :size="18" />
+                                                    Add section
+                                                </button>
+                                                <button
+                                                    class="icon-button"
+                                                    type="button"
+                                                    title="Remove step"
+                                                    aria-label="Remove step"
+                                                    :disabled="draft.pages.length === 1"
+                                                    @click="requestPageRemoval(page)"
+                                                >
+                                                    <Trash2 :size="18" />
+                                                </button>
+                                            </footer>
                                         </article>
                                         <button
                                             class="secondary-button add-row-button"
@@ -1319,6 +1379,22 @@
                                             >
                                                 Preview
                                             </button>
+                                            <button
+                                                class="wizard-save-button"
+                                                type="button"
+                                                :disabled="creating"
+                                                @click="onSaveProject"
+                                            >
+                                                <Check
+                                                    v-if="editingProjectId && !hasUnsavedChanges && !creating"
+                                                    :size="17"
+                                                />
+                                                <Save
+                                                    v-else
+                                                    :size="17"
+                                                />
+                                                {{ creating ? 'Saving' : 'Save' }}
+                                            </button>
                                         </div>
                                     </div>
                                     <div
@@ -1423,10 +1499,18 @@
                                                             </button>
                                                         </div>
                                                     </header>
-                                                    <article
+                                                    <template
                                                         v-for="(block, blockIndex) in subPage.blocks"
                                                         :key="block.id"
+                                                    >
+                                                    <article
                                                         class="block-row"
+                                                        :class="{
+                                                            'block-row-dragging': draggedBlockId === block.id,
+                                                            'block-row-drag-over': dragOverBlockId === block.id && draggedBlockId !== block.id,
+                                                        }"
+                                                        @dragover.prevent="setBlockDragOver(subPage, blockIndex)"
+                                                        @drop.prevent="dropBlock(subPage, blockIndex)"
                                                     >
                                                         <div class="block-tools">
                                                             <div class="block-type-detail">
@@ -1450,6 +1534,17 @@
                                                                 <option value="previous-answer">Previous answer</option>
                                                                 <option value="previous-multi-answer">Previous multi answer</option>
                                                             </select>
+                                                            <button
+                                                                class="icon-button block-drag-handle"
+                                                                type="button"
+                                                                title="Drag to reorder section"
+                                                                aria-label="Drag to reorder section"
+                                                                draggable="true"
+                                                                @dragstart="startBlockDrag(subPage, blockIndex, block.id, $event)"
+                                                                @dragend="endBlockDrag"
+                                                            >
+                                                                <GripVertical :size="18" />
+                                                            </button>
                                                             <button
                                                                 class="icon-button"
                                                                 type="button"
@@ -2071,17 +2166,42 @@
                                                             </label>
                                                         </div>
                                                     </article>
+                                                    <div
+                                                        v-if="blockIndex < subPage.blocks.length - 1"
+                                                        class="block-insert-row"
+                                                    >
+                                                        <button
+                                                            class="block-insert-button"
+                                                            type="button"
+                                                            aria-label="Insert section"
+                                                            data-tooltip="Insert section"
+                                                            @click="insertBlock(subPage, blockIndex + 1)"
+                                                        >
+                                                            <Plus :size="16" />
+                                                        </button>
+                                                    </div>
+                                                    </template>
                                                 </section>
-                                                <button
-                                                    class="icon-button"
-                                                    type="button"
-                                                    title="Remove step page"
-                                                    aria-label="Remove step page"
-                                                    :disabled="activeStepPage.subPages.length === 1"
-                                                    @click="requestSubPageRemoval(activeStepPage, subPage)"
-                                                >
-                                                    <Trash2 :size="18" />
-                                                </button>
+                                                <footer class="block-composer-footer">
+                                                    <button
+                                                        class="secondary-button"
+                                                        type="button"
+                                                        @click="addBlock(subPage, 'content')"
+                                                    >
+                                                        <Plus :size="18" />
+                                                        Add section
+                                                    </button>
+                                                    <button
+                                                        class="icon-button"
+                                                        type="button"
+                                                        title="Remove step page"
+                                                        aria-label="Remove step page"
+                                                        :disabled="activeStepPage.subPages.length === 1"
+                                                        @click="requestSubPageRemoval(activeStepPage, subPage)"
+                                                    >
+                                                        <Trash2 :size="18" />
+                                                    </button>
+                                                </footer>
                                             </article>
                                             <button
                                                 class="secondary-button add-row-button"
@@ -2611,10 +2731,13 @@ import {
     Check,
     CircleUserRound,
     FileText,
+    GripVertical,
     Heading1,
     Highlighter,
     Image,
     ListChecks,
+    ListPlus,
+    ListRestart,
     LayoutGrid,
     Link,
     LogIn,
@@ -2622,6 +2745,7 @@ import {
     NotebookPen,
     PanelRight,
     Plus,
+    MessageSquarePlus,
     ExternalLink,
     Rocket,
     Save,
@@ -2785,6 +2909,10 @@ const stepWizardView = ref<'build' | 'preview'>('build');
 const stepPageWizardView = ref<'build' | 'preview'>('build');
 const imageUploadState = reactive<Record<string, 'uploading' | undefined>>({});
 const imageUploadErrors = reactive<Record<string, string>>({});
+const draggedBlockId = ref<string | null>(null);
+const draggedBlockTargetId = ref<string | null>(null);
+const draggedBlockIndex = ref<number | null>(null);
+const dragOverBlockId = ref<string | null>(null);
 
 const wizardSteps = [
     { title: 'Basics', short: 'Basics' },
@@ -2794,15 +2922,15 @@ const wizardSteps = [
 
 const blockTypes = [
     { value: 'content' as const, label: 'content block', icon: Type },
-    { value: 'questions' as const, label: 'question block', icon: ListChecks },
-    { value: 'multi-answer' as const, label: 'multi answer block', icon: ListChecks },
+    { value: 'questions' as const, label: 'question block', icon: MessageSquarePlus },
+    { value: 'multi-answer' as const, label: 'multi answer block', icon: ListPlus },
     { value: 'notes' as const, label: 'user notes block', icon: NotebookPen },
     { value: 'hero' as const, label: 'hero block', icon: Heading1 },
     { value: 'quote' as const, label: 'quote block', icon: TextQuote },
     { value: 'standout' as const, label: 'standout block', icon: Highlighter },
     { value: 'image' as const, label: 'image block', icon: Image },
     { value: 'resource' as const, label: 'resource link', icon: Link },
-    { value: 'previous-answer' as const, label: 'previous answer', icon: ListChecks },
+    { value: 'previous-answer' as const, label: 'previous answer', icon: ListRestart },
     { value: 'previous-multi-answer' as const, label: 'previous multi answer', icon: ListChecks },
 ];
 
@@ -3405,6 +3533,10 @@ function addBlock(target: WizardPage | WizardSubPage, type: BlockType) {
     target.blocks.push(createBlock(type));
 }
 
+function insertBlock(target: WizardPage | WizardSubPage, index: number) {
+    target.blocks.splice(index, 0, createBlock('content'));
+}
+
 function addExtractedText(block: WizardBlock, text: string) {
     const existingContent = block.content.trim();
     block.content = existingContent ? `${existingContent}\n\n${text}` : text;
@@ -3461,6 +3593,41 @@ function moveBlock(target: WizardPage | WizardSubPage, index: number, direction:
 
     const [block] = target.blocks.splice(index, 1);
     target.blocks.splice(nextIndex, 0, block);
+}
+
+function startBlockDrag(target: WizardPage | WizardSubPage, index: number, blockId: string, event: DragEvent) {
+    draggedBlockId.value = blockId;
+    draggedBlockTargetId.value = target.id;
+    draggedBlockIndex.value = index;
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', blockId);
+    }
+}
+
+function setBlockDragOver(target: WizardPage | WizardSubPage, index: number) {
+    dragOverBlockId.value = draggedBlockTargetId.value === target.id ? target.blocks[index]?.id || null : null;
+}
+
+function dropBlock(target: WizardPage | WizardSubPage, dropIndex: number) {
+    const sourceIndex = draggedBlockIndex.value;
+
+    if (draggedBlockTargetId.value !== target.id || sourceIndex === null || sourceIndex === dropIndex) {
+        endBlockDrag();
+        return;
+    }
+
+    const [block] = target.blocks.splice(sourceIndex, 1);
+    target.blocks.splice(dropIndex, 0, block);
+    endBlockDrag();
+}
+
+function endBlockDrag() {
+    draggedBlockId.value = null;
+    draggedBlockTargetId.value = null;
+    draggedBlockIndex.value = null;
+    dragOverBlockId.value = null;
 }
 
 function syncBlockType(block: WizardBlock) {
