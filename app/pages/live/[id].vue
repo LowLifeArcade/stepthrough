@@ -2017,7 +2017,35 @@ function handleMobileNavKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
         closeSumChipOptions();
         closeMobileNav();
+        return;
     }
+
+    if (
+        event.defaultPrevented
+        || event.metaKey
+        || event.ctrlKey
+        || event.altKey
+        || isTypingTarget(event.target)
+        || showWelcomeBackModal.value
+        || showDeleteInstanceModal.value
+        || Boolean(activeSumChipOptions.value)
+        || !activeInstance.value
+    ) {
+        return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        goBack();
+    } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        goForward();
+    }
+}
+
+function isTypingTarget(target: EventTarget | null) {
+    return target instanceof HTMLElement
+        && (target.isContentEditable || Boolean(target.closest('input, textarea, select, [contenteditable="true"]')));
 }
 
 function selectScreen(index: number) {
